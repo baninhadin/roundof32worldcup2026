@@ -22,7 +22,7 @@ describe('openfootball adapter + full-tournament integration', () => {
     const kor = aVerdicts.find((v) => v.teamName === 'South Korea')!;
     expect(mex.status).toBe('qualified');
     // The corrected 2026 result: South Korea through with a win OR a draw.
-    expect(kor.headline.toLowerCase()).toContain('win or a draw');
+    expect(kor.headline.toLowerCase()).toContain('win or draw');
   });
 
   it('produces a best-thirds snapshot ranking across groups', () => {

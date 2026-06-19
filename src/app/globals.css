@@ -171,8 +171,18 @@ tr.eliminated td { opacity: 0.45; }
 .status-pill.contention { background: rgba(244, 183, 64, 0.1); color: var(--amber); border: 1px solid rgba(244, 183, 64, 0.3); }
 .status-pill.eliminated { background: rgba(240, 107, 107, 0.1); color: var(--red); border: 1px solid rgba(240, 107, 107, 0.3); }
 
-.record-line { color: var(--muted); font-size: 0.85rem; margin: 6px 0 14px; }
-.record-line b { color: var(--text); }
+.stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
+  margin: 14px 0 18px;
+}
+.stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 4px; border-radius: 9px;
+  background: var(--panel-2); border: 1px solid var(--border);
+}
+.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); }
+.stat-value { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.stat-value.strong { color: var(--green); }
 
 .headline-box {
   font-size: 1.12rem; font-weight: 650; line-height: 1.45;
@@ -194,9 +204,12 @@ tr.eliminated td { opacity: 0.45; }
 .otag.Win { background: var(--green-tint); color: var(--green); }
 .otag.Draw { background: rgba(244, 183, 64, 0.12); color: var(--amber); }
 .otag.Loss { background: rgba(240, 107, 107, 0.12); color: var(--red); }
-.otag.Guaranteed, .otag.gen { background: var(--green-tint); color: var(--green); }
-.cond .ctext { font-size: 0.94rem; line-height: 1.5; }
-.cond .ctext .guar { color: var(--green); font-weight: 600; }
+.otag.gen { background: rgba(90, 169, 255, 0.1); color: var(--blue); }
+.cond .ctext { font-size: 0.93rem; line-height: 1.5; color: var(--text); }
+.cond .ctext .cline { margin: 0; }
+.cond .ctext .clist { margin: 0; padding-left: 17px; }
+.cond .ctext .clist li { padding: 2px 0; }
+.cond .ctext.guar .cline, .cond .ctext.guar .clist li { color: var(--green); }
 
 .third-box {
   margin-top: 16px; padding: 12px 14px; border-radius: 11px;

@@ -50,10 +50,10 @@ export type Status = 'qualified' | 'eliminated' | 'contention';
  * `detail` is the plain-English consequence; `outcome` is what they must do.
  */
 export interface Condition {
-  /** What the team itself must do, e.g. "Win", "Draw", "Beat South Korea". */
+  /** Short tag for the team's own result, e.g. "Win", "Draw", "Loss", "Target". */
   outcome: string;
-  /** Plain-English consequence covering every sub-case. */
-  detail: string;
+  /** One or more plain bullet lines covering every path for this result. */
+  lines: string[];
   /** Whether this path guarantees a top-2 place (vs conditional on others / GD). */
   guarantees: boolean;
 }
