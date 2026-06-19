@@ -125,7 +125,7 @@ function describe(
     return {
       headline: 'Top two out of reach',
       conditions: [
-        { outcome: 'Done', lines: ["Can't finish in the top two, only the best-third comparison can still help"], guarantees: false },
+        { outcome: 'Done', lines: ["Can't finish top two, only the best third spots can still help"], guarantees: false },
       ],
       disclaims: false,
     };
@@ -170,11 +170,11 @@ function summarizeOwn(
     return { lines: ['Qualified for the Round of 32'], note: headToHeadNote(group, subset), guarantees: true, usedGd: false };
   }
   if (s.size === 1 && s.has('out')) {
-    return { lines: ['Out of the top two, best-third hopes only'], guarantees: false, usedGd: false };
+    return { lines: ['Out of the top two, only a best third spot left'], guarantees: false, usedGd: false };
   }
   if (s.size === 1 && s.has('gd')) {
     return {
-      lines: [`Level on points with ${rivalNames(group, subset)}, head-to-head tied, goal difference decides`],
+      lines: [`Level on points with ${rivalNames(group, subset)}, head to head is level too, so goal difference decides`],
       guarantees: false,
       usedGd: true,
     };
@@ -189,7 +189,7 @@ function summarizeOwn(
       if (!e) continue;
       const cond = describeMatch(group, om, o);
       if (e.status === 'in') lines.push(`If ${cond}, through`);
-      else if (e.status === 'out') lines.push(`If ${cond}, out (best-third hopes)`);
+      else if (e.status === 'out') lines.push(`If ${cond}, out (best third only)`);
       else lines.push(`If ${cond}, level with ${nameList(group, e.tiedWith)}, goal difference decides`);
     }
     return { lines, guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
@@ -205,7 +205,7 @@ function headToHeadNote(group: Group, subset: WorldEval[]): string | undefined {
   for (const e of subset) for (const id of e.wonHeadToHeadOver) ids.add(id);
   if (ids.size === 0) return undefined;
   const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
-  return `Head-to-head win over ${names}, which outranks goal difference in 2026`;
+  return `Won the head to head with ${names}, which now counts before goal difference`;
 }
 
 const nameList = (group: Group, ids: TeamId[]): string =>
@@ -240,7 +240,7 @@ function endgameHeadline(
     const blocker = findBlocker(group, winSub, otherIdx, unplayed);
     return blocker ? `Beat ${opp}, and need ${blocker}` : `Beat ${opp} and hope`;
   }
-  return 'Best-third hopes only';
+  return 'Best third hopes only';
 }
 
 /** When even a win is not enough, name what the team needs from the other match. */
@@ -291,22 +291,22 @@ function earlyRound(
   let line: string;
   if (allIn(byNextWin)) {
     headline = `Beat ${nextOpp} to qualify`;
-    line = `A win against ${nextOpp} next guarantees a top-two place, whatever else happens`;
+    line = `A win over ${nextOpp} next puts them through no matter what else happens`;
   } else if (allIn(byOneWin)) {
     headline = `Win any of the last ${left} to qualify`;
-    line = `A single win from the games left guarantees a top-two place`;
+    line = `Any win from the games left puts them through`;
   } else if (allIn(byAllWin)) {
     headline = `Win out to qualify`;
-    line = `Winning every remaining game guarantees top two, fewer wins may come down to other results`;
+    line = `Win every game left and they're through, anything less might come down to other results`;
   } else if (neverOut(byAllWin)) {
     headline = `Win out, goal difference may decide`;
-    line = `Winning every remaining game reaches the top two in most cases, with one outcome settled on goal difference`;
+    line = `Win out and they're through in almost every case, bar one that comes down to goal difference`;
   } else if (evals.some((e) => e.status === 'in' || e.status === 'gd')) {
     headline = 'Still in contention';
-    line = `Can still reach the top two, though no result yet guarantees it, starting with ${nextOpp} next`;
+    line = `Still able to reach the top two, nothing locked in yet, ${nextOpp} up next`;
   } else {
     headline = 'Needs help';
-    line = `Can't reach the top two without other results going their way`;
+    line = `Can't reach the top two on their own, they need other results to help`;
   }
 
   return { headline, conditions: [{ outcome: 'Outlook', lines: [line], guarantees: false }], disclaims: false };

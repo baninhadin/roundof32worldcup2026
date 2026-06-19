@@ -24,8 +24,8 @@ describe('Group A golden oracle (corrected for 2026 rules)', () => {
     expect(cond(v, 'Draw')?.guarantees).toBe(true);
     expect(cond(v, 'Loss')?.guarantees).toBe(false);
     expect(v.headline.toLowerCase()).toContain('win or draw');
-    // The draw path must explain the head-to-head reason.
-    expect(text(v, 'Draw')).toContain('head-to-head');
+    // The draw path must explain the head to head reason.
+    expect(text(v, 'Draw')).toContain('head to head');
   });
 
   it('South Africa — must beat South Korea; then GD battle vs Czechia', () => {

@@ -187,6 +187,8 @@ table.mini td {
   font-size: 0.95rem; color: var(--text);
 }
 table.mini td.pts { font-weight: 800; color: var(--green); }
+table.mini tbody tr { cursor: default; }
+table.mini tbody tr:hover { background: transparent; }
 
 .headline-box {
   font-size: 1.12rem; font-weight: 650; line-height: 1.45;

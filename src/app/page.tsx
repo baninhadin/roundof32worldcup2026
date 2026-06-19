@@ -20,7 +20,7 @@ interface NextMatch {
 interface Selection {
   verdict: TeamVerdict;
   row: StandingsRow;
-  next: NextMatch | null;
+  upcoming: NextMatch[];
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -32,13 +32,13 @@ function fmtDate(iso?: string): string {
   return d && mon ? `${d} ${mon}` : '';
 }
 
-function nextMatchFor(group: Group, teamId: TeamId): NextMatch | null {
-  const m = group.matches.find(
-    (mt) => (mt.home === teamId || mt.away === teamId) && mt.homeGoals === null,
-  );
-  if (!m) return null;
-  const oppId = m.home === teamId ? m.away : m.home;
-  return { opp: group.teams.find((t) => t.id === oppId)!.name, date: m.date };
+function upcomingFor(group: Group, teamId: TeamId): NextMatch[] {
+  return group.matches
+    .filter((mt) => (mt.home === teamId || mt.away === teamId) && mt.homeGoals === null)
+    .map((mt) => {
+      const oppId = mt.home === teamId ? mt.away : mt.home;
+      return { opp: group.teams.find((t) => t.id === oppId)!.name, date: mt.date };
+    });
 }
 
 export default function Page() {
@@ -77,14 +77,19 @@ export default function Page() {
     for (const t of tournament) for (const v of t.verdicts) m.set(v.teamId, v);
     return m;
   }, [tournament]);
-  const nextByTeam = useMemo(() => {
-    const m = new Map<string, NextMatch>();
-    for (const g of data.groups) for (const t of g.teams) {
-      const n = nextMatchFor(g, t.id);
-      if (n) m.set(t.id, n);
-    }
+  const upcomingByTeam = useMemo(() => {
+    const m = new Map<string, NextMatch[]>();
+    for (const g of data.groups) for (const t of g.teams) m.set(t.id, upcomingFor(g, t.id));
     return m;
   }, [data]);
+
+  useEffect(() => {
+    const open = sel !== null || rulesOpen;
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sel, rulesOpen]);
 
   return (
     <div className="wrap">
@@ -101,7 +106,7 @@ export default function Page() {
                 : 'Bundled snapshot'}
           </span>
           <button className="pill btn" onClick={() => setRulesOpen(true)}>
-            ⓘ Tiebreaker rules &amp; sources
+            ⓘ Tiebreaker rules and sources
           </button>
           <span className="pill">Top 2 + 8 best thirds advance</span>
         </div>
@@ -149,7 +154,7 @@ export default function Page() {
                       <tr
                         key={r.teamId}
                         className={`${v.status} ${r.position === 2 ? 'cut-line' : ''}`}
-                        onClick={() => setSel({ verdict: v, row: r, next: nextByTeam.get(r.teamId) ?? null })}
+                        onClick={() => setSel({ verdict: v, row: r, upcoming: upcomingByTeam.get(r.teamId) ?? [] })}
                       >
                         <td className="pos">{r.position}</td>
                         <td className="team-col">
@@ -183,8 +188,8 @@ export default function Page() {
         <p>
           A calculator, not a simulator. It runs every remaining result combination and returns the
           conclusion per team. &quot;Goal difference decides&quot; cases are real, they depend on margins
-          not yet played. Tiebreakers follow the 2026 rules (head-to-head ahead of goal difference). The
-          dashed line marks the top-two cut-off. Data from{' '}
+          not yet played. Tiebreakers follow the 2026 rules (head to head ahead of goal difference). The
+          dashed line marks the top two cutoff. Data from{' '}
           <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
             openfootball/worldcup.json
           </a>
@@ -212,12 +217,12 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
           <div>
             <h3>{v.teamName}</h3>
             <div className="grp">Group {v.groupName}, currently {ordinalWord(r.position)}</div>
-            {sel.next && (
-              <div className="grp next">
-                Next up {sel.next.opp}
-                {sel.next.date ? `, ${fmtDate(sel.next.date)}` : ''}
+            {sel.upcoming.map((u, i) => (
+              <div className="grp next" key={i}>
+                {i === 0 ? 'Next up' : 'then'} {u.opp}
+                {u.date ? `, ${fmtDate(u.date)}` : ''}
               </div>
-            )}
+            ))}
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
             ×
@@ -272,19 +277,19 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
 
         {v.bestThird && (
           <div className={`third-box ${v.bestThird.currentlyIn ? 'in' : ''}`}>
-            <b>Best-third race.</b> Right now this team ranks{' '}
+            <b>Best third race.</b> Right now this team ranks{' '}
             <b>
               {v.bestThird.rank}
               {ordinalSuffix(v.bestThird.rank)} of 12
             </b>{' '}
-            third-placed teams. The top {v.bestThird.cutoff} advance, so on current results it{' '}
+            third placed teams. The top {v.bestThird.cutoff} advance, so on current results it{' '}
             <b>{v.bestThird.currentlyIn ? 'would qualify' : 'would miss out'}</b>.
           </div>
         )}
 
         {v.disclaimsDeepTiebreak && (
           <div className="disclaim">
-            If a goal-difference path also ends level on goals scored, it comes down to fair-play conduct
+            If a goal difference path also ends level on goals scored, it comes down to fair play conduct
             and FIFA ranking, which this version doesn&apos;t compute.
           </div>
         )}
@@ -321,7 +326,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           ))}
         </ol>
 
-        <h4>Best third-placed teams</h4>
+        <h4>Best third placed teams</h4>
         <ol>
           {BEST_THIRD_TIEBREAKERS.map((t, i) => (
             <li key={i}>{t}</li>
