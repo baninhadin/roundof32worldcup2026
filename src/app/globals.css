@@ -199,7 +199,22 @@ table.mini tbody tr:hover { background: transparent; }
 }
 .stats-block table.mini { margin: 0; }
 
-.matches { margin: -6px 0 16px; display: flex; flex-direction: column; gap: 6px; }
+.matches {
+  margin: -6px 0 16px; display: flex; flex-direction: column; gap: 6px;
+  overflow: hidden;
+  animation: expand 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes expand {
+  from { opacity: 0; transform: translateY(-6px); max-height: 0; }
+  to { opacity: 1; transform: none; max-height: 320px; }
+}
+.matches .match { animation: matchrow 0.26s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.matches .match:nth-child(2) { animation-delay: 0.04s; }
+.matches .match:nth-child(3) { animation-delay: 0.08s; }
+@keyframes matchrow {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
 .match {
   display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center;
   padding: 8px 12px; border-radius: 9px;
