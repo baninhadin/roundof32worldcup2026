@@ -51,6 +51,7 @@ export function toGroups(file: OpenFootballFile): Group[] {
         away: teamId(m.team2),
         homeGoals: ft ? ft[0] : null,
         awayGoals: ft ? ft[1] : null,
+        date: m.date,
       };
     });
 

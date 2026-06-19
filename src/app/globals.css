@@ -156,6 +156,7 @@ tr.eliminated td { opacity: 0.45; }
 }
 .modal-top h3 { margin: 0; font-size: 1.4rem; letter-spacing: -0.01em; }
 .modal-top .grp { color: var(--muted); font-size: 0.85rem; }
+.modal-top .grp.next { color: var(--blue); margin-top: 1px; }
 .modal-close {
   margin-left: auto; background: var(--panel-2); border: 1px solid var(--border-2);
   color: var(--muted); width: 32px; height: 32px; border-radius: 9px; cursor: pointer;

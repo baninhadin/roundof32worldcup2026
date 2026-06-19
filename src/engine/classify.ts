@@ -115,7 +115,7 @@ function describe(
     return {
       headline: 'Qualified',
       conditions: [
-        { outcome: 'Qualified', lines: ['Qualified for the Round of 32.'], note: 'Now playing for top spot and seeding.', guarantees: true },
+        { outcome: 'Qualified', lines: ['Qualified for the Round of 32'], note: 'Now playing for top spot and seeding', guarantees: true },
       ],
       disclaims: false,
     };
@@ -125,7 +125,7 @@ function describe(
     return {
       headline: 'Top two out of reach',
       conditions: [
-        { outcome: 'Done', lines: ["Can't finish in the top two. Only the best-third comparison can still help."], guarantees: false },
+        { outcome: 'Done', lines: ["Can't finish in the top two, only the best-third comparison can still help"], guarantees: false },
       ],
       disclaims: false,
     };
@@ -167,14 +167,14 @@ function summarizeOwn(
   const s = new Set(subset.map((e) => e.status));
 
   if (s.size === 1 && s.has('in')) {
-    return { lines: ['Qualified for the Round of 32.'], note: headToHeadNote(group, subset), guarantees: true, usedGd: false };
+    return { lines: ['Qualified for the Round of 32'], note: headToHeadNote(group, subset), guarantees: true, usedGd: false };
   }
   if (s.size === 1 && s.has('out')) {
-    return { lines: ['Out of the top two, best-third hopes only.'], guarantees: false, usedGd: false };
+    return { lines: ['Out of the top two, best-third hopes only'], guarantees: false, usedGd: false };
   }
   if (s.size === 1 && s.has('gd')) {
     return {
-      lines: [`Level on points with ${rivalNames(group, subset)}, head-to-head tied, so goal difference decides.`],
+      lines: [`Level on points with ${rivalNames(group, subset)}, head-to-head tied, goal difference decides`],
       guarantees: false,
       usedGd: true,
     };
@@ -188,14 +188,14 @@ function summarizeOwn(
       const e = subset.find((x) => x.otherOutcomes[0] === o);
       if (!e) continue;
       const cond = describeMatch(group, om, o);
-      if (e.status === 'in') lines.push(`If ${cond}, you go through.`);
-      else if (e.status === 'out') lines.push(`If ${cond}, you're out (best-third hopes).`);
-      else lines.push(`If ${cond}, you're level with ${nameList(group, e.tiedWith)} and goal difference decides.`);
+      if (e.status === 'in') lines.push(`If ${cond}, through`);
+      else if (e.status === 'out') lines.push(`If ${cond}, out (best-third hopes)`);
+      else lines.push(`If ${cond}, level with ${nameList(group, e.tiedWith)}, goal difference decides`);
     }
     return { lines, guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
   }
 
-  return { lines: ['Depends on the other group results.'], guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
+  return { lines: ['Depends on the other group results'], guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
 }
 
 /** If a guaranteed result hinges on winning a points tie via head-to-head, say so:
@@ -205,7 +205,7 @@ function headToHeadNote(group: Group, subset: WorldEval[]): string | undefined {
   for (const e of subset) for (const id of e.wonHeadToHeadOver) ids.add(id);
   if (ids.size === 0) return undefined;
   const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
-  return `You beat ${names} head-to-head, and in 2026 that's settled before goal difference, so a bigger ${names} win can't catch you.`;
+  return `Head-to-head win over ${names}, which outranks goal difference in 2026`;
 }
 
 const nameList = (group: Group, ids: TeamId[]): string =>
@@ -280,7 +280,8 @@ function earlyRound(
   const nextOpp = opponentName(group, unplayed[ownIdx[0]], teamId);
   const left = ownIdx.length;
   const wins = (e: WorldEval) => e.own.filter((r) => r === 'Win').length;
-  const allIn = (subset: WorldEval[]) => subset.length > 0 && subset.every((e) => e.status === 'in');
+  const allIn = (s: WorldEval[]) => s.length > 0 && s.every((e) => e.status === 'in');
+  const neverOut = (s: WorldEval[]) => s.length > 0 && s.every((e) => e.status !== 'out');
 
   const byNextWin = evals.filter((e) => e.own[0] === 'Win');
   const byOneWin = evals.filter((e) => wins(e) >= 1);
@@ -290,19 +291,22 @@ function earlyRound(
   let line: string;
   if (allIn(byNextWin)) {
     headline = `Beat ${nextOpp} to qualify`;
-    line = `Winning the next game against ${nextOpp} guarantees a top-two place, whatever else happens.`;
+    line = `A win against ${nextOpp} next guarantees a top-two place, whatever else happens`;
   } else if (allIn(byOneWin)) {
     headline = `Win any of the last ${left} to qualify`;
-    line = `A single win from the remaining games guarantees a top-two place.`;
+    line = `A single win from the games left guarantees a top-two place`;
   } else if (allIn(byAllWin)) {
     headline = `Win out to qualify`;
-    line = `Winning every remaining game guarantees a top-two place. Fewer wins may still come down to other results.`;
+    line = `Winning every remaining game guarantees top two, fewer wins may come down to other results`;
+  } else if (neverOut(byAllWin)) {
+    headline = `Win out, goal difference may decide`;
+    line = `Winning every remaining game reaches the top two in most cases, with one outcome settled on goal difference`;
   } else if (evals.some((e) => e.status === 'in' || e.status === 'gd')) {
     headline = 'Still in contention';
-    line = `Can still reach the top two, but no result yet guarantees it on their own. Starts with ${nextOpp} next.`;
+    line = `Can still reach the top two, though no result yet guarantees it, starting with ${nextOpp} next`;
   } else {
     headline = 'Needs help';
-    line = `Can't reach the top two on their own results, even by winning out.`;
+    line = `Can't reach the top two without other results going their way`;
   }
 
   return { headline, conditions: [{ outcome: 'Outlook', lines: [line], guarantees: false }], disclaims: false };

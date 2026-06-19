@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { classifyTournament, type TeamVerdict } from '@/engine';
+import { useEffect, useMemo, useState } from 'react';
+import { classifyTournament, type Group, type TeamId, type TeamVerdict } from '@/engine';
 import { standingsView, type StandingsRow } from '@/lib/standingsView';
 import { loadGroups, bundledGroups, type LoadResult } from '@/data/load';
 import { flagClass } from '@/lib/flags';
@@ -12,9 +12,33 @@ import {
   RULE_SOURCES,
 } from '@/lib/rules';
 
+interface NextMatch {
+  opp: string;
+  date?: string;
+}
+
 interface Selection {
   verdict: TeamVerdict;
   row: StandingsRow;
+  next: NextMatch | null;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function fmtDate(iso?: string): string {
+  if (!iso) return '';
+  const [, mo, d] = iso.split('-').map(Number);
+  const mon = MONTHS[(mo ?? 0) - 1];
+  return d && mon ? `${d} ${mon}` : '';
+}
+
+function nextMatchFor(group: Group, teamId: TeamId): NextMatch | null {
+  const m = group.matches.find(
+    (mt) => (mt.home === teamId || mt.away === teamId) && mt.homeGoals === null,
+  );
+  if (!m) return null;
+  const oppId = m.home === teamId ? m.away : m.home;
+  return { opp: group.teams.find((t) => t.id === oppId)!.name, date: m.date };
 }
 
 export default function Page() {
@@ -53,12 +77,20 @@ export default function Page() {
     for (const t of tournament) for (const v of t.verdicts) m.set(v.teamId, v);
     return m;
   }, [tournament]);
+  const nextByTeam = useMemo(() => {
+    const m = new Map<string, NextMatch>();
+    for (const g of data.groups) for (const t of g.teams) {
+      const n = nextMatchFor(g, t.id);
+      if (n) m.set(t.id, n);
+    }
+    return m;
+  }, [data]);
 
   return (
     <div className="wrap">
       <header>
         <h1 className="title">What does my team need to qualify?</h1>
-        <p className="subtitle">World Cup 2026 · group stage → Round of 32</p>
+        <p className="subtitle">World Cup 2026, group stage to the Round of 32</p>
         <div className="bar">
           <span className="pill">
             <span className={`live-dot ${data.source}`} />
@@ -117,7 +149,7 @@ export default function Page() {
                       <tr
                         key={r.teamId}
                         className={`${v.status} ${r.position === 2 ? 'cut-line' : ''}`}
-                        onClick={() => setSel({ verdict: v, row: r })}
+                        onClick={() => setSel({ verdict: v, row: r, next: nextByTeam.get(r.teamId) ?? null })}
                       >
                         <td className="pos">{r.position}</td>
                         <td className="team-col">
@@ -150,7 +182,7 @@ export default function Page() {
       <footer>
         <p>
           A calculator, not a simulator. It runs every remaining result combination and returns the
-          conclusion per team. &quot;Goal difference decides&quot; cases are real: they depend on margins
+          conclusion per team. &quot;Goal difference decides&quot; cases are real, they depend on margins
           not yet played. Tiebreakers follow the 2026 rules (head-to-head ahead of goal difference). The
           dashed line marks the top-two cut-off. Data from{' '}
           <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
@@ -179,7 +211,13 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
           {flag && <span className={`flag-lg ${flag}`} />}
           <div>
             <h3>{v.teamName}</h3>
-            <div className="grp">Group {v.groupName} · currently {ordinalWord(r.position)}</div>
+            <div className="grp">Group {v.groupName}, currently {ordinalWord(r.position)}</div>
+            {sel.next && (
+              <div className="grp next">
+                Next up {sel.next.opp}
+                {sel.next.date ? `, ${fmtDate(sel.next.date)}` : ''}
+              </div>
+            )}
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
             ×

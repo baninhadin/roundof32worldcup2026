@@ -14,6 +14,8 @@ export interface Match {
   away: TeamId;
   homeGoals: number | null;
   awayGoals: number | null;
+  /** ISO date (YYYY-MM-DD) when available, used to show the next fixture. */
+  date?: string;
 }
 
 export interface Group {
