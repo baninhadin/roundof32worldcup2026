@@ -35,6 +35,7 @@ interface WorldEval {
   otherOutcomes: Outcome[]; // outcomes of the other unplayed matches
   status: BoundaryStatus;
   tiedWith: TeamId[];
+  wonHeadToHeadOver: TeamId[];
 }
 
 export function classifyGroup(group: Group): TeamVerdict[] {
@@ -57,6 +58,7 @@ export function classifyGroup(group: Group): TeamVerdict[] {
         otherOutcomes: otherIdx.map((i) => world[i]),
         status: b.status,
         tiedWith: b.tiedWith,
+        wonHeadToHeadOver: b.wonHeadToHeadOver,
       };
     });
 
@@ -180,7 +182,8 @@ function summarizeOwn(
   const s = new Set(subset.map((e) => e.status));
 
   if (s.size === 1 && s.has('in')) {
-    return { detail: `through to the Round of 32.`, guarantees: true, usedGd: false };
+    const hh = headToHeadNote(group, subset);
+    return { detail: `through to the Round of 32${hh}`, guarantees: true, usedGd: false };
   }
   if (s.size === 1 && s.has('out')) {
     return { detail: `top-two route closed — best-third hopes only.`, guarantees: false, usedGd: false };
@@ -218,6 +221,16 @@ function summarizeOwn(
     guarantees: false,
     usedGd,
   };
+}
+
+/** If a guaranteed-through result depends on winning a points tie via head-to-head,
+ *  explain it — this is the 2026 H2H-ahead-of-GD rule that surprises people. */
+function headToHeadNote(group: Group, subset: WorldEval[]): string {
+  const ids = new Set<TeamId>();
+  for (const e of subset) for (const id of e.wonHeadToHeadOver) ids.add(id);
+  if (ids.size === 0) return '.';
+  const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
+  return ` — even level on points with ${names}, you finish above on head-to-head (which outranks goal difference in 2026).`;
 }
 
 function rivalNames(group: Group, subset: WorldEval[]): string {

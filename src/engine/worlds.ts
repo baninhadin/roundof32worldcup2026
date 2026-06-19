@@ -52,11 +52,20 @@ export function worldMatches(
  *
  * Also reports the rivals it is tied with (for GD-threshold copy).
  */
+export interface Boundary {
+  status: BoundaryStatus;
+  /** Peers tied on points AND head-to-head points, separable only by GD. */
+  tiedWith: TeamId[];
+  /** Peers tied on points whom this team finishes ABOVE on head-to-head points
+   *  (the "why" behind a result being enough under the 2026 H2H-first rule). */
+  wonHeadToHeadOver: TeamId[];
+}
+
 export function topTwoBoundary(
   teamId: TeamId,
   teamIds: TeamId[],
   matches: Match[],
-): { status: BoundaryStatus; tiedWith: TeamId[] } {
+): Boundary {
   const pts = new Map<TeamId, number>();
   for (const id of teamIds) pts.set(id, recordFor(id, matches).points);
 
@@ -66,7 +75,7 @@ export function topTwoBoundary(
 
   if (cluster.length === 1) {
     // No one shares my points: position is fixed by points alone.
-    return { status: above <= 1 ? 'in' : 'out', tiedWith: [] };
+    return { status: above <= 1 ? 'in' : 'out', tiedWith: [], wonHeadToHeadOver: [] };
   }
 
   // Criterion 2: head-to-head points among the tied cluster only.
@@ -77,14 +86,15 @@ export function topTwoBoundary(
   const myHH = hhPts.get(teamId)!;
   const strictlyAbove = cluster.filter((id) => id !== teamId && hhPts.get(id)! > myHH).length;
   const tiedPeers = cluster.filter((id) => id !== teamId && hhPts.get(id)! === myHH);
+  const wonHeadToHeadOver = cluster.filter((id) => id !== teamId && hhPts.get(id)! < myHH);
 
   const best = above + strictlyAbove; // 0-based best possible position
   const worst = best + tiedPeers.length; // if every tied peer edges above me
 
-  if (worst <= 1) return { status: 'in', tiedWith: [] };
-  if (best >= 2) return { status: 'out', tiedWith: [] };
+  if (worst <= 1) return { status: 'in', tiedWith: [], wonHeadToHeadOver };
+  if (best >= 2) return { status: 'out', tiedWith: [], wonHeadToHeadOver: [] };
   // The cut runs through a head-to-head-points tie -> goal difference decides.
-  return { status: 'gd', tiedWith: tiedPeers };
+  return { status: 'gd', tiedWith: tiedPeers, wonHeadToHeadOver };
 }
 
 /** Final position bucket (1-based) ignoring GD ties — used for best-third

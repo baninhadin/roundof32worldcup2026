@@ -1,14 +1,27 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { classifyTournament, type TeamVerdict } from '@/engine';
-import { standingsView } from '@/lib/standingsView';
+import { standingsView, type StandingsRow } from '@/lib/standingsView';
 import { loadGroups, bundledGroups, type LoadResult } from '@/data/load';
+import { flagClass } from '@/lib/flags';
+import {
+  FORMAT_RULES,
+  GROUP_TIEBREAKERS,
+  BEST_THIRD_TIEBREAKERS,
+  RULE_SOURCES,
+} from '@/lib/rules';
+
+interface Selection {
+  verdict: TeamVerdict;
+  row: StandingsRow;
+}
 
 export default function Page() {
   const [data, setData] = useState<LoadResult>(() => bundledGroups());
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [sel, setSel] = useState<Selection | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -23,6 +36,17 @@ export default function Page() {
     };
   }, []);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSel(null);
+        setRulesOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const tournament = useMemo(() => classifyTournament(data.groups), [data]);
   const verdictByTeam = useMemo(() => {
     const m = new Map<string, TeamVerdict>();
@@ -33,55 +57,91 @@ export default function Page() {
   return (
     <div className="wrap">
       <header>
-        <h1>What does my team need to qualify?</h1>
-        <p className="sub">World Cup 2026 · Group stage → Round of 32</p>
-        <div className="meta">
-          <span>
-            <span className={`dot ${data.source}`} />{' '}
+        <h1 className="title">What does my team need to qualify?</h1>
+        <p className="subtitle">World Cup 2026 · group stage → Round of 32</p>
+        <div className="bar">
+          <span className="pill">
+            <span className={`live-dot ${data.source}`} />
             {loading
-              ? 'checking for live results…'
+              ? 'Checking live results…'
               : data.source === 'live'
-                ? 'Live results (openfootball)'
-                : 'Bundled snapshot (live fetch unavailable)'}
+                ? 'Live results'
+                : 'Bundled snapshot'}
           </span>
-          <span>·</span>
-          <span>Top 2 of each group + 8 best third-placed teams advance</span>
+          <button className="pill btn" onClick={() => setRulesOpen(true)}>
+            ⓘ Tiebreaker rules &amp; sources
+          </button>
+          <span className="pill">Top 2 + 8 best thirds advance</span>
         </div>
       </header>
 
       <div className="legend">
-        <span className="swatch">
-          <span className="bar" style={{ background: 'var(--green)' }} /> Guaranteed through
+        <span className="sw">
+          <span className="chip" style={{ background: 'var(--green)' }} /> Guaranteed through
         </span>
-        <span className="swatch">Tap any team for exactly what it needs</span>
+        <span className="sw">
+          <span className="chip" style={{ background: 'var(--amber)' }} /> In contention
+        </span>
+        <span className="sw">Tap any team for exactly what it needs →</span>
       </div>
 
       <div className="grid">
-        {tournament.map(({ group }) => {
+        {tournament.map(({ group }, gi) => {
           const rows = standingsView(group);
           return (
-            <section className="card" key={group.name}>
-              <h2>GROUP {group.name}</h2>
-              {rows.map((r) => {
-                const v = verdictByTeam.get(r.teamId)!;
-                const isOpen = expanded === r.teamId;
-                return (
-                  <div key={r.teamId}>
-                    <button
-                      className={`row ${v.status} ${isOpen ? 'expanded' : ''}`}
-                      onClick={() => setExpanded(isOpen ? null : r.teamId)}
-                      aria-expanded={isOpen}
-                    >
-                      <span className="pos">{r.position}</span>
-                      <span className="name">{r.teamName}</span>
-                      <span className="nums">{r.played}p</span>
-                      <span className="nums">{r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}</span>
-                      <span className="nums">{r.points}</span>
-                    </button>
-                    {isOpen && <Detail v={v} />}
-                  </div>
-                );
-              })}
+            <section className="card" key={group.name} style={{ animationDelay: `${gi * 45}ms` }}>
+              <div className="card-head">
+                <span className="group-badge">{group.name}</span>
+                <span className="grp-label">GROUP {group.name}</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th className="team-col">Team</th>
+                    <th>P</th>
+                    <th>W</th>
+                    <th>D</th>
+                    <th>L</th>
+                    <th>GF</th>
+                    <th>GA</th>
+                    <th>GD</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const v = verdictByTeam.get(r.teamId)!;
+                    const flag = flagClass(r.teamName);
+                    return (
+                      <tr
+                        key={r.teamId}
+                        className={`${v.status} ${r.position === 2 ? 'cut-line' : ''}`}
+                        onClick={() => setSel({ verdict: v, row: r })}
+                      >
+                        <td className="pos">{r.position}</td>
+                        <td className="team-col">
+                          <span className="team-cell">
+                            {flag ? <span className={`flag ${flag}`} /> : <span className="flag" />}
+                            {r.teamName}
+                            {v.status === 'qualified' && <span className="qual-check">✓</span>}
+                          </span>
+                        </td>
+                        <td>{r.played}</td>
+                        <td>{r.won}</td>
+                        <td>{r.drawn}</td>
+                        <td>{r.lost}</td>
+                        <td>{r.goalsFor}</td>
+                        <td>{r.goalsAgainst}</td>
+                        <td className={r.goalDiff > 0 ? 'gd-pos' : r.goalDiff < 0 ? 'gd-neg' : ''}>
+                          {r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}
+                        </td>
+                        <td className="pts">{r.points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </section>
           );
         })}
@@ -89,53 +149,140 @@ export default function Page() {
 
       <footer>
         <p>
-          This is a calculator, not a simulator — it runs every remaining result combination and
-          hands back the conclusion. &quot;Goal difference decides&quot; cases are genuine: they
-          depend on margins not yet played. Tiebreakers follow the 2026 rules (head-to-head ahead of
-          goal difference). Data:{' '}
+          A calculator, not a simulator — it runs every remaining result combination and returns the
+          conclusion per team. &quot;Goal difference decides&quot; cases are real: they depend on margins
+          not yet played. Tiebreakers follow the 2026 rules (head-to-head ahead of goal difference). The
+          dashed line marks the top-two cut-off. Data:{' '}
           <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
             openfootball/worldcup.json
           </a>
-          .
+          , as live as that community source.
         </p>
       </footer>
+
+      {sel && <TeamModal sel={sel} onClose={() => setSel(null)} />}
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
     </div>
   );
 }
 
-function Detail({ v }: { v: TeamVerdict }) {
+function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
+  const { verdict: v, row: r } = sel;
+  const flag = flagClass(v.teamName);
+  const statusLabel =
+    v.status === 'qualified' ? 'Qualified — through' : v.status === 'eliminated' ? 'Eliminated' : 'In contention';
+
   return (
-    <div className="detail">
-      <div className="headline">{v.headline}</div>
-      {v.conditions.map((c, i) => (
-        <div className="cond" key={i}>
-          <span className={`tag ${c.guarantees ? 'guar' : ''}`}>{c.outcome}</span>
-          <span className="text">{c.detail}</span>
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-top">
+          {flag && <span className={`flag-lg ${flag}`} />}
+          <div>
+            <h3>{v.teamName}</h3>
+            <div className="grp">Group {v.groupName} · currently {ordinalWord(r.position)}</div>
+          </div>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
         </div>
-      ))}
-      {v.bestThird && (
-        <div className={`third ${v.bestThird.currentlyIn ? 'in' : ''}`}>
-          Best-third race (as things stand):{' '}
-          <b>
-            {v.bestThird.rank}
-            {ordinal(v.bestThird.rank)} of 12
-          </b>{' '}
-          — top {v.bestThird.cutoff} advance, so currently{' '}
-          <b>{v.bestThird.currentlyIn ? 'would qualify' : 'would miss out'}</b>.
+
+        <span className={`status-pill ${v.status}`}>{statusLabel}</span>
+
+        <div className="record-line">
+          Played <b>{r.played}</b> · <b>{r.won}</b>W <b>{r.drawn}</b>D <b>{r.lost}</b>L · GF{' '}
+          <b>{r.goalsFor}</b> GA <b>{r.goalsAgainst}</b> · GD{' '}
+          <b>{r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}</b> · <b>{r.points}</b> pts
         </div>
-      )}
-      {v.disclaimsDeepTiebreak && (
-        <div className="third">
-          Note: one path stays level even on goal difference — it would then be decided by fair-play
-          conduct and FIFA ranking, which this v1 doesn&apos;t compute.
-        </div>
-      )}
+
+        <div className="headline-box">{v.headline}</div>
+
+        <div className="conds-label">What each result means</div>
+        {v.conditions.map((c, i) => {
+          const tag = ['Win', 'Draw', 'Loss', 'Guaranteed'].includes(c.outcome) ? c.outcome : 'gen';
+          return (
+            <div className="cond" key={i}>
+              <span className={`otag ${tag}`}>{c.outcome}</span>
+              <span className="ctext">
+                {c.guarantees ? <span className="guar">{c.detail}</span> : c.detail}
+              </span>
+            </div>
+          );
+        })}
+
+        {v.bestThird && (
+          <div className={`third-box ${v.bestThird.currentlyIn ? 'in' : ''}`}>
+            <b>Best-third race</b> (as things stand): currently{' '}
+            <b>
+              {v.bestThird.rank}
+              {ordinalSuffix(v.bestThird.rank)} of 12
+            </b>{' '}
+            — the top {v.bestThird.cutoff} third-placed teams advance, so right now this team{' '}
+            <b>{v.bestThird.currentlyIn ? 'would qualify' : 'would miss out'}</b>.
+          </div>
+        )}
+
+        {v.disclaimsDeepTiebreak && (
+          <div className="disclaim">
+            One path stays level even on goal difference — it would then be decided by fair-play conduct
+            and FIFA ranking, which this version doesn&apos;t compute.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function ordinal(n: number): string {
+function RulesModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal rules" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-top">
+          <h3>How qualification works</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <h4>Format</h4>
+        <ul>
+          {FORMAT_RULES.map((r, i) => (
+            <li key={i}>{r}</li>
+          ))}
+        </ul>
+
+        <h4>Group tiebreakers (2026 order)</h4>
+        <ol>
+          {GROUP_TIEBREAKERS.map((t) => (
+            <li key={t.n} className={t.v1 ? '' : 'future'}>
+              {t.text}
+              {!t.v1 && ' — not computed in this version'}
+            </li>
+          ))}
+        </ol>
+
+        <h4>Best third-placed teams</h4>
+        <ol>
+          {BEST_THIRD_TIEBREAKERS.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ol>
+
+        <h4>Sources</h4>
+        {RULE_SOURCES.map((s, i) => (
+          <a className="src" key={i} href={s.url} target="_blank" rel="noreferrer">
+            {s.label} ↗
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ordinalSuffix(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+function ordinalWord(n: number): string {
+  return ['', '1st', '2nd', '3rd', '4th'][n] ?? `${n}th`;
 }
