@@ -240,15 +240,7 @@ export default function Page() {
           <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
             openfootball/worldcup.json
           </a>{' '}
-          (as live as that community source).{' '}
-          <a
-            href="https://github.com/baninhadin/roundof32worldcup2026"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Source on GitHub
-          </a>
-          .
+          (as live as that community source).
         </p>
       </footer>
 
@@ -430,17 +422,20 @@ function ThemeToggle() {
   }, []);
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
+    const root = document.documentElement;
+    root.classList.add('theming'); // enable a synced crossfade just for the switch
+    root.dataset.theme = next;
     try {
       localStorage.setItem('theme', next);
     } catch {
       /* ignore */
     }
     setTheme(next);
+    window.setTimeout(() => root.classList.remove('theming'), 280);
   };
   return (
-    <button className="pill btn" onClick={toggle} aria-label="Toggle light and dark theme">
-      {theme === 'dark' ? '☀ Light' : '☾ Dark'}
+    <button className="pill btn icon" onClick={toggle} aria-label="Toggle light and dark theme">
+      {theme === 'dark' ? '☀' : '☾'}
     </button>
   );
 }
