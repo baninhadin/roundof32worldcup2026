@@ -203,7 +203,7 @@ function headToHeadNote(group: Group, subset: WorldEval[]): string | undefined {
   for (const e of subset) for (const id of e.wonHeadToHeadOver) ids.add(id);
   if (ids.size === 0) return undefined;
   const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
-  return `Won the head to head with ${names}, which now counts before goal difference`;
+  return `Won the head to head with ${names} (tiebreaker 2)`;
 }
 
 const nameList = (group: Group, ids: TeamId[]): string =>
