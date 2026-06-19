@@ -171,18 +171,21 @@ tr.eliminated td { opacity: 0.45; }
 .status-pill.contention { background: rgba(244, 183, 64, 0.1); color: var(--amber); border: 1px solid rgba(244, 183, 64, 0.3); }
 .status-pill.eliminated { background: rgba(240, 107, 107, 0.1); color: var(--red); border: 1px solid rgba(240, 107, 107, 0.3); }
 
-.stat-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
-  margin: 14px 0 18px;
+table.mini {
+  width: 100%; border-collapse: collapse; margin: 14px 0 18px;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  background: var(--panel-2);
 }
-.stat {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 8px 4px; border-radius: 9px;
-  background: var(--panel-2); border: 1px solid var(--border);
+table.mini th {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--faint); font-weight: 600; padding: 7px 4px; text-align: center;
+  border-bottom: 1px solid var(--border);
 }
-.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); }
-.stat-value { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
-.stat-value.strong { color: var(--green); }
+table.mini td {
+  text-align: center; padding: 9px 4px; font-variant-numeric: tabular-nums;
+  font-size: 0.95rem; color: var(--text);
+}
+table.mini td.pts { font-weight: 800; color: var(--green); }
 
 .headline-box {
   font-size: 1.12rem; font-weight: 650; line-height: 1.45;
@@ -205,11 +208,12 @@ tr.eliminated td { opacity: 0.45; }
 .otag.Draw { background: rgba(244, 183, 64, 0.12); color: var(--amber); }
 .otag.Loss { background: rgba(240, 107, 107, 0.12); color: var(--red); }
 .otag.gen { background: rgba(90, 169, 255, 0.1); color: var(--blue); }
+.otag.good { background: var(--green-tint); color: var(--green); }
 .cond .ctext { font-size: 0.93rem; line-height: 1.5; color: var(--text); }
-.cond .ctext .cline { margin: 0; }
-.cond .ctext .clist { margin: 0; padding-left: 17px; }
-.cond .ctext .clist li { padding: 2px 0; }
-.cond .ctext.guar .cline, .cond .ctext.guar .clist li { color: var(--green); }
+.cond .ctext .cline { margin: 0 0 4px; }
+.cond .ctext .cline:last-child { margin-bottom: 0; }
+.cond .ctext.guar .cline { color: var(--green); }
+.cond .ctext .cnote { margin: 5px 0 0; font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
 
 .third-box {
   margin-top: 16px; padding: 12px 14px; border-radius: 11px;

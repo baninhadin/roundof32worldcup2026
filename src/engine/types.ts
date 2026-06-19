@@ -52,8 +52,10 @@ export type Status = 'qualified' | 'eliminated' | 'contention';
 export interface Condition {
   /** Short tag for the team's own result, e.g. "Win", "Draw", "Loss", "Target". */
   outcome: string;
-  /** One or more plain bullet lines covering every path for this result. */
+  /** One or more plain lines covering every path for this result. */
   lines: string[];
+  /** Optional secondary explanation, shown muted below the lines (not a branch). */
+  note?: string;
   /** Whether this path guarantees a top-2 place (vs conditional on others / GD). */
   guarantees: boolean;
 }

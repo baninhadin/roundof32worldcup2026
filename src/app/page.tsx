@@ -188,35 +188,45 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
 
         <span className={`status-pill ${v.status}`}>{statusLabel}</span>
 
-        <div className="stat-grid">
-          <Stat label="Played" value={r.played} />
-          <Stat label="Won" value={r.won} />
-          <Stat label="Drawn" value={r.drawn} />
-          <Stat label="Lost" value={r.lost} />
-          <Stat label="GF" value={r.goalsFor} />
-          <Stat label="GA" value={r.goalsAgainst} />
-          <Stat label="GD" value={r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff} />
-          <Stat label="Points" value={r.points} strong />
-        </div>
+        <table className="mini">
+          <thead>
+            <tr>
+              <th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{r.played}</td>
+              <td>{r.won}</td>
+              <td>{r.drawn}</td>
+              <td>{r.lost}</td>
+              <td>{r.goalsFor}</td>
+              <td>{r.goalsAgainst}</td>
+              <td>{r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}</td>
+              <td className="pts">{r.points}</td>
+            </tr>
+          </tbody>
+        </table>
 
         <div className="headline-box">{v.headline}</div>
 
         <div className="conds-label">What each result means</div>
         {v.conditions.map((c, i) => {
-          const tag = ['Win', 'Draw', 'Loss'].includes(c.outcome) ? c.outcome : 'gen';
+          const tag = ['Win', 'Draw', 'Loss'].includes(c.outcome)
+            ? c.outcome
+            : c.guarantees
+              ? 'good'
+              : 'gen';
           return (
             <div className="cond" key={i}>
               <span className={`otag ${tag}`}>{c.outcome}</span>
               <div className={`ctext ${c.guarantees ? 'guar' : ''}`}>
-                {c.lines.length === 1 ? (
-                  <p className="cline">{c.lines[0]}</p>
-                ) : (
-                  <ul className="clist">
-                    {c.lines.map((l, j) => (
-                      <li key={j}>{l}</li>
-                    ))}
-                  </ul>
-                )}
+                {c.lines.map((l, j) => (
+                  <p className="cline" key={j}>
+                    {l}
+                  </p>
+                ))}
+                {c.note && <p className="cnote">{c.note}</p>}
               </div>
             </div>
           );
@@ -287,15 +297,6 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           </a>
         ))}
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, strong }: { label: string; value: number | string; strong?: boolean }) {
-  return (
-    <div className="stat">
-      <span className="stat-label">{label}</span>
-      <span className={`stat-value ${strong ? 'strong' : ''}`}>{value}</span>
     </div>
   );
 }
