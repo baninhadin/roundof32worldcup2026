@@ -62,16 +62,9 @@ export function classifyGroup(group: Group): TeamVerdict[] {
       };
     });
 
-    const statuses = new Set(evals.map((e) => e.status));
-    const everIn = statuses.has('in') || statuses.has('gd');
-    const alwaysIn = evals.every((e) => e.status === 'in');
-    const neverTop2 = !statuses.has('in') && !statuses.has('gd');
-
-    let status: Status;
-    if (alwaysIn) status = 'qualified';
-    else if (neverTop2 && ownIdx.length === 0) status = 'eliminated'; // group finished, missed out
-    else if (neverTop2) status = 'contention'; // best-third hopes handled at tournament level
-    else status = 'contention';
+    // Elimination is decided at the tournament level (it needs cross-group info),
+    // so here a team is only "qualified" (top 2 in every world) or "contention".
+    const status: Status = evals.every((e) => e.status === 'in') ? 'qualified' : 'contention';
 
     const topTwoWorldFraction =
       evals.filter((e) => e.status === 'in' || e.status === 'gd').length / evals.length;
@@ -170,7 +163,7 @@ function summarizeOwn(
     return { lines: ['Qualified for the Round of 32'], note: headToHeadNote(group, subset), guarantees: true, usedGd: false };
   }
   if (s.size === 1 && s.has('out')) {
-    return { lines: ['Out of the top two, only a best third spot left'], guarantees: false, usedGd: false };
+    return { lines: ['Out from top two. Only hope for best third'], guarantees: false, usedGd: false };
   }
   if (s.size === 1 && s.has('gd')) {
     return {
@@ -188,7 +181,7 @@ function summarizeOwn(
       const e = subset.find((x) => x.otherOutcomes[0] === o);
       if (!e) continue;
       const cond = describeMatch(group, om, o);
-      if (e.status === 'in') lines.push(`If ${cond}, through`);
+      if (e.status === 'in') lines.push(`If ${cond}, qualifies`);
       else if (e.status === 'out') lines.push(`If ${cond}, out (best third only)`);
       else lines.push(`If ${cond}, level with ${nameList(group, e.tiedWith)}, goal difference decides`);
     }
@@ -234,7 +227,7 @@ function endgameHeadline(
   const winQualifies = winSub.some((e) => e.status === 'in' || e.status === 'gd');
 
   if (allIn(winSub) && allIn(drawSub)) return `Win or draw vs ${opp}`;
-  if (allIn(winSub)) return `Beat ${opp} to go through`;
+  if (allIn(winSub)) return `Beat ${opp} to qualify`;
   if (neverOut(winSub)) return `Beat ${opp}, goal difference may decide`;
   if (winQualifies) {
     const blocker = findBlocker(group, winSub, otherIdx, unplayed);

@@ -65,6 +65,7 @@ export function topTwoBoundary(
   teamId: TeamId,
   teamIds: TeamId[],
   matches: Match[],
+  cutoff = 2,
 ): Boundary {
   const pts = new Map<TeamId, number>();
   for (const id of teamIds) pts.set(id, recordFor(id, matches).points);
@@ -75,7 +76,7 @@ export function topTwoBoundary(
 
   if (cluster.length === 1) {
     // No one shares my points: position is fixed by points alone.
-    return { status: above <= 1 ? 'in' : 'out', tiedWith: [], wonHeadToHeadOver: [] };
+    return { status: above <= cutoff - 1 ? 'in' : 'out', tiedWith: [], wonHeadToHeadOver: [] };
   }
 
   // Criterion 2: head-to-head points among the tied cluster only.
@@ -91,8 +92,8 @@ export function topTwoBoundary(
   const best = above + strictlyAbove; // 0-based best possible position
   const worst = best + tiedPeers.length; // if every tied peer edges above me
 
-  if (worst <= 1) return { status: 'in', tiedWith: [], wonHeadToHeadOver };
-  if (best >= 2) return { status: 'out', tiedWith: [], wonHeadToHeadOver: [] };
+  if (worst <= cutoff - 1) return { status: 'in', tiedWith: [], wonHeadToHeadOver };
+  if (best >= cutoff) return { status: 'out', tiedWith: [], wonHeadToHeadOver: [] };
   // The cut runs through a head-to-head-points tie -> goal difference decides.
   return { status: 'gd', tiedWith: tiedPeers, wonHeadToHeadOver };
 }
