@@ -108,7 +108,12 @@ function describe(
     return {
       headline: 'Qualified',
       conditions: [
-        { outcome: 'Qualified', lines: ['Qualified for the Round of 32'], note: 'Now playing for top spot and seeding', guarantees: true },
+        {
+          outcome: 'Qualified',
+          lines: ['Qualified for the Round of 32'],
+          note: groupFinished ? undefined : 'Still playing for top spot and seeding',
+          guarantees: true,
+        },
       ],
       disclaims: false,
     };

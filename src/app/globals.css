@@ -191,8 +191,38 @@ table.mini td {
   font-size: 0.95rem; color: var(--text);
 }
 table.mini td.pts { font-weight: 800; color: var(--green); }
-table.mini tbody tr { cursor: default; }
 table.mini tbody tr:hover { background: transparent; }
+
+.stats-block {
+  margin: 14px 0 18px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.13s;
+}
+.stats-block:hover { background: var(--panel-2); }
+.stats-block table.mini { margin: 0; }
+.stats-hint {
+  text-align: center; font-size: 0.7rem; color: var(--faint);
+  padding: 6px 0 2px; letter-spacing: 0.03em;
+}
+
+.matches { margin: -6px 0 16px; display: flex; flex-direction: column; gap: 6px; }
+.match {
+  display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center;
+  padding: 8px 12px; border-radius: 9px;
+  background: var(--panel-2); border: 1px solid var(--border);
+}
+.match .res {
+  width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+  font-size: 0.72rem; font-weight: 800;
+}
+.match .res.W { background: var(--green-tint); color: var(--green); }
+.match .res.D { background: rgba(244, 183, 64, 0.14); color: var(--amber); }
+.match .res.L { background: rgba(240, 107, 107, 0.14); color: var(--red); }
+.match .res.tbd { background: var(--panel); color: var(--faint); }
+.match .mteam { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
+.match .mteam .mside { color: var(--faint); font-size: 0.8rem; }
+.match .mscore { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.9rem; }
 
 .headline-box {
   font-size: 1.12rem; font-weight: 650; line-height: 1.45;

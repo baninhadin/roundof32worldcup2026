@@ -17,10 +17,20 @@ interface NextMatch {
   date?: string;
 }
 
+interface MatchLine {
+  opp: string;
+  flag: string | null;
+  home: boolean;
+  result: 'W' | 'D' | 'L' | null;
+  scoreText: string | null;
+  date?: string;
+}
+
 interface Selection {
   verdict: TeamVerdict;
   row: StandingsRow;
   upcoming: NextMatch[];
+  matches: MatchLine[];
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -38,6 +48,24 @@ function upcomingFor(group: Group, teamId: TeamId): NextMatch[] {
     .map((mt) => {
       const oppId = mt.home === teamId ? mt.away : mt.home;
       return { opp: group.teams.find((t) => t.id === oppId)!.name, date: mt.date };
+    });
+}
+
+function matchesFor(group: Group, teamId: TeamId): MatchLine[] {
+  return group.matches
+    .filter((m) => m.home === teamId || m.away === teamId)
+    .map((m) => {
+      const home = m.home === teamId;
+      const oppId = home ? m.away : m.home;
+      const opp = group.teams.find((t) => t.id === oppId)!.name;
+      const flag = flagClass(opp);
+      if (m.homeGoals !== null && m.awayGoals !== null) {
+        const gf = home ? m.homeGoals : m.awayGoals;
+        const ga = home ? m.awayGoals : m.homeGoals;
+        const result = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
+        return { opp, flag, home, result: result as 'W' | 'D' | 'L', scoreText: `${gf}-${ga}`, date: m.date };
+      }
+      return { opp, flag, home, result: null, scoreText: null, date: m.date };
     });
 }
 
@@ -154,7 +182,14 @@ export default function Page() {
                       <tr
                         key={r.teamId}
                         className={`${v.status} ${r.position === 2 ? 'cut-line' : ''}`}
-                        onClick={() => setSel({ verdict: v, row: r, upcoming: upcomingByTeam.get(r.teamId) ?? [] })}
+                        onClick={() =>
+                          setSel({
+                            verdict: v,
+                            row: r,
+                            upcoming: upcomingByTeam.get(r.teamId) ?? [],
+                            matches: matchesFor(group, r.teamId),
+                          })
+                        }
                       >
                         <td className="pos">{r.position}</td>
                         <td className="team-col">
@@ -205,6 +240,7 @@ export default function Page() {
 
 function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
   const { verdict: v, row: r } = sel;
+  const [showMatches, setShowMatches] = useState(false);
   const flag = flagClass(v.teamName);
   const statusLabel =
     v.status === 'qualified' ? 'Qualified' : v.status === 'eliminated' ? 'Eliminated' : 'In contention';
@@ -231,25 +267,48 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
 
         <span className={`status-pill ${v.status}`}>{statusLabel}</span>
 
-        <table className="mini">
-          <thead>
-            <tr>
-              <th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{r.played}</td>
-              <td>{r.won}</td>
-              <td>{r.drawn}</td>
-              <td>{r.lost}</td>
-              <td>{r.goalsFor}</td>
-              <td>{r.goalsAgainst}</td>
-              <td>{r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}</td>
-              <td className="pts">{r.points}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div
+          className="stats-block"
+          onClick={() => setShowMatches((s) => !s)}
+          role="button"
+          tabIndex={0}
+        >
+          <table className="mini">
+            <thead>
+              <tr>
+                <th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{r.played}</td>
+                <td>{r.won}</td>
+                <td>{r.drawn}</td>
+                <td>{r.lost}</td>
+                <td>{r.goalsFor}</td>
+                <td>{r.goalsAgainst}</td>
+                <td>{r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}</td>
+                <td className="pts">{r.points}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="stats-hint">{showMatches ? 'Hide matches ▲' : 'Tap for all 3 matches ▾'}</div>
+        </div>
+
+        {showMatches && (
+          <div className="matches">
+            {sel.matches.map((mt, i) => (
+              <div className="match" key={i}>
+                <span className={`res ${mt.result ?? 'tbd'}`}>{mt.result ?? '–'}</span>
+                <span className="mteam">
+                  {mt.flag && <span className={`flag ${mt.flag}`} />}
+                  <span className="mside">{mt.home ? 'vs' : 'at'}</span> {mt.opp}
+                </span>
+                <span className="mscore">{mt.scoreText ?? (mt.date ? fmtDate(mt.date) : 'TBD')}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="headline-box">{v.headline}</div>
 
