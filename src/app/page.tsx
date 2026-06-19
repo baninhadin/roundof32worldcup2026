@@ -292,7 +292,6 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
               </tr>
             </tbody>
           </table>
-          <div className="stats-hint">{showMatches ? 'Hide matches ▲' : 'Tap for all 3 matches ▾'}</div>
         </div>
 
         {showMatches && (

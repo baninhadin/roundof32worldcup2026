@@ -196,15 +196,8 @@ table.mini tbody tr:hover { background: transparent; }
 .stats-block {
   margin: 14px 0 18px;
   cursor: pointer;
-  border-radius: 10px;
-  transition: background 0.13s;
 }
-.stats-block:hover { background: var(--panel-2); }
 .stats-block table.mini { margin: 0; }
-.stats-hint {
-  text-align: center; font-size: 0.7rem; color: var(--faint);
-  padding: 6px 0 2px; letter-spacing: 0.03em;
-}
 
 .matches { margin: -6px 0 16px; display: flex; flex-direction: column; gap: 6px; }
 .match {
