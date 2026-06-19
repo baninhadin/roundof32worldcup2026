@@ -1,4 +1,5 @@
 import { recordsFor } from './standings';
+import { fifaRankOf } from './fifaRanking';
 import type { Match, Record, TeamId } from './types';
 
 export interface GroupRanking {
@@ -49,14 +50,25 @@ function rankTied(
   });
 
   if (byOverall.length === 1) {
-    // Fully tied through criterion 6 -> only conduct / FIFA ranking remain.
-    unresolved.push([...teamIds]);
-    return [...teamIds];
+    // Fully tied through criterion 6 -> conduct (7, no card data) then FIFA ranking (8).
+    return resolveByRanking([...teamIds], unresolved);
   }
 
   const out: TeamId[] = [];
   for (const b of byOverall) {
-    if (b.length > 1) unresolved.push([...b]); // tied on 5–6 too
+    out.push(...(b.length > 1 ? resolveByRanking(b, unresolved) : b));
+  }
+  return out;
+}
+
+/** Criterion 8: order remaining tied teams by FIFA ranking (criterion 7, conduct,
+ *  is skipped because card data is unavailable). Only teams sharing a rank (unknown
+ *  teams in tests) stay unresolved. */
+function resolveByRanking(teamIds: TeamId[], unresolved: TeamId[][]): TeamId[] {
+  const byRank = bucket(teamIds, (id) => [-fifaRankOf(id)]);
+  const out: TeamId[] = [];
+  for (const b of byRank) {
+    if (b.length > 1) unresolved.push([...b]);
     out.push(...b);
   }
   return out;

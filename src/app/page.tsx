@@ -122,7 +122,12 @@ export default function Page() {
   return (
     <div className="wrap">
       <header>
-        <h1 className="title">What does my team need to qualify?</h1>
+        <div className="brand">
+          <span className="brand-badge" aria-hidden>
+            32
+          </span>
+          <h1 className="title">What does my team need to qualify?</h1>
+        </div>
         <p className="subtitle">World Cup 2026, group stage to the Round of 32</p>
         <div className="bar">
           <span className="pill">
@@ -137,15 +142,19 @@ export default function Page() {
             ⓘ Tiebreaker rules and sources
           </button>
           <span className="pill">Top 2 + 8 best thirds advance</span>
+          <ThemeToggle />
         </div>
       </header>
 
       <div className="legend">
         <span className="sw">
-          <span className="chip" style={{ background: 'var(--green)' }} /> Guaranteed through
+          <span className="chip" style={{ background: 'var(--green)' }} /> Qualified
         </span>
         <span className="sw">
           <span className="chip" style={{ background: 'var(--amber)' }} /> In contention
+        </span>
+        <span className="sw">
+          <span className="chip" style={{ background: 'var(--red)' }} /> Eliminated
         </span>
         <span className="sw">Tap any team for exactly what it needs →</span>
       </div>
@@ -224,11 +233,22 @@ export default function Page() {
           A calculator, not a simulator. It runs every remaining result combination and returns the
           conclusion per team. &quot;Goal difference decides&quot; cases are real, they depend on margins
           not yet played. Tiebreakers follow the 2026 rules (head to head ahead of goal difference). The
-          dashed line marks the top two cutoff. Data from{' '}
+          dashed line marks the top two cutoff.
+        </p>
+        <p>
+          Unofficial and not affiliated with FIFA. Built for fun, not betting. Results from{' '}
           <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
             openfootball/worldcup.json
+          </a>{' '}
+          (as live as that community source).{' '}
+          <a
+            href="https://github.com/baninhadin/roundof32worldcup2026"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source on GitHub
           </a>
-          , as live as that community source.
+          .
         </p>
       </footer>
 
@@ -347,8 +367,8 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
 
         {v.disclaimsDeepTiebreak && (
           <div className="disclaim">
-            If a goal difference path also ends level on goals scored, it comes down to fair play conduct
-            and FIFA ranking, which this version doesn&apos;t compute.
+            If a goal difference path ends level on goals too, FIFA ranking decides it (tiebreaker 8).
+            Fair play conduct (tiebreaker 7) needs card data the feed doesn&apos;t carry, so it&apos;s skipped.
           </div>
         )}
       </div>
@@ -399,6 +419,29 @@ function RulesModal({ onClose }: { onClose: () => void }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    const t = document.documentElement.dataset.theme;
+    setTheme(t === 'light' ? 'light' : 'dark');
+  }, []);
+  const toggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      /* ignore */
+    }
+    setTheme(next);
+  };
+  return (
+    <button className="pill btn" onClick={toggle} aria-label="Toggle light and dark theme">
+      {theme === 'dark' ? '☀ Light' : '☾ Dark'}
+    </button>
   );
 }
 

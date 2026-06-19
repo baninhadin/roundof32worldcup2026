@@ -18,6 +18,38 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
+:root[data-theme='light'] {
+  --bg: #f5f7fb;
+  --bg-2: #eef2f8;
+  --panel: #ffffff;
+  --panel-2: #f1f4fa;
+  --row-hover: #eaf0fa;
+  --border: #e3e8f0;
+  --border-2: #d2dae7;
+  --text: #141a26;
+  --muted: #5b6677;
+  --faint: #8a95a7;
+  --green: #128a5f;
+  --green-deep: #9bd9c0;
+  --green-tint: rgba(18, 138, 95, 0.1);
+  --amber: #b9810f;
+  --red: #d24b4b;
+  --blue: #2f7ff0;
+  --shadow: 0 10px 28px rgba(30, 45, 80, 0.1);
+}
+:root[data-theme='light'] body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(18, 138, 95, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 0% 0%, rgba(47, 127, 240, 0.07), transparent 55%),
+    var(--bg);
+}
+:root[data-theme='light'] .title {
+  background: linear-gradient(90deg, #131a2a, #41527a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 * { box-sizing: border-box; }
 
 html {
@@ -38,6 +70,15 @@ html, body {
 }
 
 .wrap { max-width: 1320px; margin: 0 auto; padding: 36px 22px 90px; }
+
+/* header logo */
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.brand-badge {
+  width: 40px; height: 40px; border-radius: 11px; flex: none;
+  display: grid; place-items: center; font-weight: 900; font-size: 1rem; letter-spacing: -0.02em;
+  color: #04130d; background: linear-gradient(150deg, var(--green), #7ef0c4);
+  box-shadow: 0 6px 18px rgba(46, 230, 160, 0.28);
+}
 
 /* ---------- header ---------- */
 header { margin-bottom: 22px; }
@@ -87,6 +128,14 @@ header { margin-bottom: 22px; }
 }
 @keyframes rise { to { opacity: 1; transform: none; } }
 
+.card { position: relative; transition: transform 0.16s ease, box-shadow 0.16s ease; }
+.card::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(46, 230, 160, 0.45), transparent);
+  opacity: 0.6;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5); }
+
 .card-head {
   display: flex; align-items: center; gap: 10px;
   padding: 13px 16px;
@@ -131,7 +180,9 @@ td.gd-neg { color: var(--red); }
 
 tr.qualified { background: var(--green-tint); box-shadow: inset 3px 0 0 var(--green); }
 tr.qualified:hover { background: rgba(46, 230, 160, 0.13); }
-tr.eliminated td { opacity: 0.45; }
+tr.contention { box-shadow: inset 3px 0 0 var(--amber); }
+tr.eliminated { box-shadow: inset 3px 0 0 var(--red); }
+tr.eliminated td { opacity: 0.42; }
 
 .cut-line td { border-top: 1px dashed var(--border-2); }
 

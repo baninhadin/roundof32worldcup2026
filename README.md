@@ -78,9 +78,11 @@ goals), a live best thirds standing, and live data with an offline fallback.
 
 Left out on purpose:
 
-- Tiebreaker criteria 7 and 8 (fair play conduct, FIFA ranking). Rarely reached, and they need data the
-  results JSON doesn't carry. When a tie survives criteria 1 to 6, the app says so honestly instead of
-  guessing. Adding them later is a data-sourcing task, not an algorithm change.
+- Tiebreaker 7 (fair play conduct). It needs per match yellow and red cards, which the results feed
+  doesn't carry, and there's no free reliable card source for an in-progress tournament. So a tie that
+  would reach conduct is decided by tiebreaker 8 instead, with an honest note that conduct is skipped.
+- Tiebreaker 8 (FIFA ranking) IS computed: the ranking published before the tournament is a fixed list,
+  so a bundled snapshot of that order breaks any tie that survives criteria 1 to 6 (astronomically rare).
 - A real probability model. A naive "all results equally likely" percentage falls out of the same
   enumeration for free, but it isn't a prediction, and I didn't want it competing with the deterministic
   verdict, so it's deferred. The engine already computes the per-world counts it would need.
@@ -114,7 +116,7 @@ Left out on purpose:
 Working means the verdict for a real group matches what a careful person derives by hand. That is what
 the Group A golden test pins down (`src/engine/classify.test.ts`), and it is how I caught my own biggest
 mistake (below). Next: spell out goal difference thresholds numerically, add the labelled probability
-figure, per team share links, and source criteria 7 and 8 to remove the one disclaimer.
+figure, per team share links, and source card data for tiebreaker 7 to remove the last disclaimer.
 
 ## AI usage, and one thing it got wrong that I caught
 

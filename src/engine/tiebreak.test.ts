@@ -46,7 +46,22 @@ describe('2026 head-to-head outranks overall goal difference', () => {
   });
 });
 
-describe('unresolved ties (criteria 7–8 territory)', () => {
+describe('rule 8 — FIFA ranking breaks a tie that survives criteria 1–6', () => {
+  it('ranks the higher-FIFA-ranked team above when all else is identical', () => {
+    // Spain and Croatia: drew head-to-head, identical overall records -> level through
+    // criterion 6. Spain is ranked higher, so it should finish above. No unresolved tie.
+    const matches: Match[] = [
+      { home: 'Spain', away: 'Croatia', homeGoals: 1, awayGoals: 1 },
+      { home: 'Spain', away: 'Haiti', homeGoals: 2, awayGoals: 0 },
+      { home: 'Croatia', away: 'Haiti', homeGoals: 2, awayGoals: 0 },
+    ];
+    const r = rankGroup(['Spain', 'Croatia', 'Haiti'], matches);
+    expect(r.ordered.slice(0, 2)).toEqual(['Spain', 'Croatia']);
+    expect(r.unresolved).toEqual([]);
+  });
+});
+
+describe('unresolved only when even FIFA ranking cannot separate', () => {
   it('flags two teams identical through criterion 6', () => {
     // KOR and CZE: drew their H2H and have identical overall records
     // -> unresolvable by criteria 1–6; only conduct / FIFA ranking remain.

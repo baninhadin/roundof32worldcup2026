@@ -22,7 +22,7 @@ export const GROUP_TIEBREAKERS: { n: number; text: string; v1: boolean }[] = [
   { n: 5, text: 'Overall goal difference', v1: true },
   { n: 6, text: 'Overall goals scored', v1: true },
   { n: 7, text: 'Fair play conduct score (fewest disciplinary points)', v1: false },
-  { n: 8, text: 'FIFA World Ranking  (replaces drawing of lots, removed for 2026)', v1: false },
+  { n: 8, text: 'FIFA World Ranking  (replaces drawing of lots, removed for 2026)', v1: true },
 ];
 
 export const BEST_THIRD_TIEBREAKERS: string[] = [
