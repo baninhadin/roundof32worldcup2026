@@ -1,26 +1,54 @@
-# What does my team need to qualify? (World Cup 2026)
+# What does my team need to qualify?
 
 A plain-English qualification calculator for the 2026 World Cup group stage. Pick a team and see, in
-one short verdict, exactly what it needs to reach the Round of 32. For example: "South Korea: win or
-draw to go through."
+one short verdict, exactly what it needs to reach the Round of 32. For example: "South Korea, win or
+draw vs South Africa."
 
-**Live demo:** https://roundof32worldcup2026.vercel.app
+**Live:** https://roundof32worldcup2026.vercel.app
 
-It is not a simulator. Simulators make you type in scorelines and then read a table. This does the
-opposite. It runs every remaining result combination itself and gives you the conclusion, per team.
+It is a calculator, not a simulator. Simulators make you type in scorelines and read a table. This does
+the opposite: it runs every remaining result combination itself and gives you the conclusion, per team.
 
 ## Run it
 
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # engine unit tests, including the Group A golden case
+npm test         # engine unit tests, incl. an exhaustive run over thousands of finished groups
 npm run build    # production build
 ```
 
-No API keys, no env vars, no database. The qualification math is pure client-side TypeScript.
+No API keys, no env vars, no database. The qualification maths is pure client-side TypeScript.
 
-## Who it's for and the one job it does
+## What you can do
+
+- See all 12 groups at a glance. Green = qualified, amber = in contention, red = eliminated.
+- Tap any team for its verdict: what each result (win, draw, loss) means, the best-third picture, and
+  why a qualified team is through.
+- Tap a team's stats to see its three group matches (score if played, date if not).
+- Flip on **Simulate** to set your own scorelines on upcoming games (or enter a live score) and watch
+  the whole table and every verdict recompute.
+- Light and dark themes. Live data with an offline fallback so the page never shows empty.
+
+## How it works
+
+The whole thing is a pure function in the browser: results and fixtures in, a verdict per team out.
+
+1. **Data.** Fetches the public [openfootball/worldcup.json](https://github.com/openfootball/worldcup.json)
+   feed client-side, with a bundled snapshot as an offline fallback. Parses the 104 fixtures into a
+   group model; unplayed games have null scores.
+2. **Rules (FIFA 2026, Article 13).** Points, then head-to-head points, then H2H goal difference, then
+   H2H goals, then overall goal difference, overall goals, fair play, and FIFA ranking. Head-to-head
+   sits ahead of goal difference, which is new for 2026.
+3. **The calculation.** Enumerate every remaining result as win/draw/loss: 3^(games left), at most a few
+   hundred per group, so it is brute-forced. Points and head-to-head are exact from W/D/L, so
+   "qualified" (top two in every combination) and "eliminated" come out exact. Goal difference is never
+   enumerated; it is solved as an inequality, so the answer is a threshold ("win by 2 or more") or,
+   when a draw freezes the gap, already decided.
+4. **Best thirds.** Rank the twelve 3rd-placed teams across groups; the top 8 advance. Elimination uses
+   group independence so it stays tractable rather than enumerating all groups at once.
+
+## Who it's for, and the one job
 
 Anyone following the group stage who wants a straight answer to "what does my team need today?". Fans,
 group chats, broadcasters. The one job: turn the standings plus remaining fixtures into a single plain
@@ -28,111 +56,58 @@ verdict per team that still covers every path, without making you simulate anyth
 
 ## Why this problem
 
-During a group stage the real question is conditional and fiddly to work out by hand: "we're through
-if we win, or if we draw and the other game doesn't go a certain way, unless it comes down to goal
-difference." Google shows the table but won't compute that. It is exactly the kind of bounded,
-rule-heavy task software should just do for you.
+During a group stage the real question is conditional and fiddly to work out by hand: "we are through
+if we win, or if we draw and the other game does not go a certain way, unless it comes down to goal
+difference." Google shows the table but will not compute that. It is exactly the kind of bounded,
+rule-heavy task software should just do for you, and it spikes every tournament.
 
-How I know it's worth doing: every tournament this is a recurring spike of searching and confusion,
-and the tools that exist all stop one step short. They give you a table or a percentage, not the
-answer.
+## What is already out there, and why build it anyway
 
-## What's already out there, and why build it anyway
-
-Plenty exists, and I want to be honest about that:
-
-- Simulators (worldcuppass, worldcuppredictor, GoWoC/worldcupcalculator, football-md): you enter
-  scorelines, they redraw the table. The work is still yours.
+- Simulators (worldcuppass, worldcuppredictor, GoWoC, football-md): you enter scorelines, they redraw
+  the table. The work is still yours.
 - Predictors (Opta supercomputer): give a qualification percentage, not a condition.
-- Editorial (FIFA's permutations page, ESPN's clinching scenarios): prose you have to read and search
-  to find your team's case. Not computed interactively.
-- gamblingcalc: a dedicated best thirds calculator, closest on that one sub-problem.
+- Editorial (FIFA permutations, ESPN clinching scenarios): prose you have to read and search.
 
-This is a clarity play, not a new capability, and I'd rather say so plainly than oversell it. None of
-the above gives a direct, per team, plain verdict that is computed for you and still covers every path.
-That gap is the whole product.
+This is a clarity play, not a new capability, and I would rather say so than oversell it. None of the
+above gives a direct, per-team, plain verdict that is computed for you and still covers every path.
 
-## How the engine works
+## Scope: in and out
 
-The fear with goal difference is that it means infinite scorelines to simulate. It doesn't, if you
-split the problem in two.
+**In:** exact top-two verdicts for all 12 groups under the 2026 tiebreakers (criteria 1 to 6), FIFA
+ranking (criterion 8) as the final decider, mathematical elimination, a live best-thirds standing,
+Simulate mode, light/dark, live data with an offline fallback.
 
-1. Results (win/draw/loss) are finite and small. In the final round a group has two simultaneous
-   matches, so 3 x 3 = 9 possible worlds. Earlier rounds are 3^(matches left), at most a few hundred.
-   The engine enumerates these. Points and head to head points are fully determined by results, so
-   "guaranteed through" and "out" come only from there. Those verdicts are exact.
-2. Goal difference is never enumerated. It is solved as a threshold. When teams tie on points and
-   head to head, "does A finish above B" is just an inequality on goal difference. So goal difference
-   only ever produces a conditional ("then goal difference decides"), never a false guarantee. A 7-1
-   win isn't a scenario to simulate. It just satisfies "win by enough."
+**Out, on purpose:** fair-play conduct (criterion 7) needs per-match cards the feed does not carry, so a
+tie that would reach it is decided by FIFA ranking instead, stated honestly. A real probability model is
+deferred (a naive percentage would compete with the deterministic verdict). A fully conditional
+best-thirds across all 12 groups at once is intractable, so that view is a clearly labelled live
+snapshot while the top-two verdict stays exact.
 
-The engine lives in `src/engine/` as a pure function from teams and fixtures to a per team verdict,
-with no UI or network coupling. The verdict text you see is generated by code from that result, not
-written by hand per team.
+## Where I did not have answers, and what I assumed
 
-## What's in scope, what I left out, and why
+- The 2026 tiebreaker order is confirmed across several secondary sources (head-to-head moved ahead of
+  goal difference, drawing of lots gone), but FIFA's own page is JavaScript-rendered and would not fetch,
+  so I treat it as high-confidence rather than primary-source-verified, and the app links its sources.
+- "Live" means as live as openfootball, which is community-maintained and can lag, hence the snapshot.
 
-In scope: exact top two verdicts for all 12 groups under the 2026 tiebreakers, criteria 1 to 6 (points,
-head to head points, head to head goal difference, head to head goals, overall goal difference, overall
-goals), a live best thirds standing, and live data with an offline fallback.
+## Three questions I would ask a real user before building more
 
-Left out on purpose:
+1. Do you check just your team, or compare a whole group at a glance? (Default view: one team or 12.)
+2. Do you want the goal-difference maths spelled out numerically, or is "comes down to goal difference"
+   enough?
+3. Would a shareable one-line verdict be useful for group chats?
 
-- Tiebreaker 7 (fair play conduct). It needs per match yellow and red cards, which the results feed
-  doesn't carry, and there's no free reliable card source for an in-progress tournament. So a tie that
-  would reach conduct is decided by tiebreaker 8 instead, with an honest note that conduct is skipped.
-- Tiebreaker 8 (FIFA ranking) IS computed: the ranking published before the tournament is a fixed list,
-  so a bundled snapshot of that order breaks any tie that survives criteria 1 to 6 (astronomically rare).
-- A real probability model. A naive "all results equally likely" percentage falls out of the same
-  enumeration for free, but it isn't a prediction, and I didn't want it competing with the deterministic
-  verdict, so it's deferred. The engine already computes the per-world counts it would need.
-- Conditional best thirds across all 12 groups. A fully rigorous "you are guaranteed a best third spot"
-  would need every group enumerated at once, which is intractable. The top two verdict stays exact. The
-  best thirds view is a clearly labelled live snapshot ("right now you are 6th of 12, top 8 advance"),
-  which is how ESPN and others present it too.
-
-## Where I didn't have answers, and what I assumed
-
-- The 2026 tiebreaker order. Confirmed against six independent secondary sources (SofaScore, NBC, Fox,
-  ESPN, gamblingcalc, plus a football-data account), all in agreement: head to head moved ahead of
-  overall goal difference for 2026, and drawing of lots is gone. FIFA's own regulations page is
-  JavaScript-rendered and wouldn't fetch, so I could not read the primary PDF directly. I treat the
-  order as high confidence with primary source pending, and the app links its sources.
-- "Live" means as live as the source. Data comes from openfootball/worldcup.json, which is community
-  maintained, so a just-finished result can lag. A bundled snapshot guarantees the demo never shows
-  empty.
-
-## Three questions I'd ask a real user before building more
-
-1. When you check this, are you asking about your team only, or comparing a whole group at a glance?
-   That decides whether the default view is one team or all 12.
-2. Do you want the goal difference maths spelled out ("win by 2 or more"), or is "it comes down to goal
-   difference" enough? That decides how deep the conditions go.
-3. Would a shareable one-line verdict be useful for group chats? That decides whether per team links or
-   share cards are worth building.
-
-## How I'd know it's working, and what's next
+## How I would know it is working, and what is next
 
 Working means the verdict for a real group matches what a careful person derives by hand. That is what
-the Group A golden test pins down (`src/engine/classify.test.ts`), and it is how I caught my own biggest
-mistake (below). Next: spell out goal difference thresholds numerically, add the labelled probability
-figure, per team share links, and source card data for tiebreaker 7 to remove the last disclaimer.
+the Group A golden test pins down, and an exhaustive test brute-forces thousands of finished groups
+asserting exactly two qualify each time. Next: spell out goal-difference thresholds numerically, add the
+labelled probability figure, per-team share links, and source card data for criterion 7.
 
-## AI usage, and one thing it got wrong that I caught
+## Tech
 
-This was built with AI assistance (Claude Code) across research, the engine, and the UI.
-
-The sharpest catch was the tiebreaker order. The first instinct was the 2018/2022 rule, where overall
-goal difference comes first. That is wrong for 2026, which moved head to head ahead of goal difference.
-Worse, the wrong order survived into the hand-written test case I was going to trust as ground truth.
-The draft said South Korea, on a draw, would go through "only if Czechia don't beat Mexico." Re-deriving
-all nine result-worlds against the corrected rules showed that is false. South Korea beat Czechia
-head to head, and since 2026 ranks head to head above goal difference, a draw is enough no matter what
-Czechia do. The fix is the single most load-bearing line in the app, and it is exactly what the golden
-test now locks in.
-
-The lesson I kept: verify the rules against a primary source before writing the test oracle, because a
-wrong oracle makes every test pass against the wrong answer.
+Next.js (App Router) and TypeScript, deployed on Vercel. Engine is framework-free and unit-tested with
+Vitest. Country flags via flag-icons. Traffic via Vercel Web Analytics.
 
 ## License
 

@@ -209,7 +209,36 @@ export default function Page() {
       <header>
         <div className="brand">
           <span className="brand-badge" aria-hidden>
-            32
+            <svg className="brand-svg" viewBox="0 0 64 64">
+              <defs>
+                <linearGradient id="logoG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#2ee6a0" />
+                  <stop offset="1" stopColor="#7ef0c4" />
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" rx="16" fill="url(#logoG)" />
+              <path
+                d="M14 33 l6 6 l13 -15"
+                fill="none"
+                stroke="#06150e"
+                strokeWidth="4.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.22"
+              />
+              <text
+                x="32"
+                y="46"
+                textAnchor="middle"
+                fontFamily="Segoe UI, Arial, sans-serif"
+                fontSize="33"
+                fontWeight="900"
+                letterSpacing="-2"
+                fill="#06150e"
+              >
+                32
+              </text>
+            </svg>
           </span>
           <h1 className="title">What does my team need to qualify?</h1>
         </div>

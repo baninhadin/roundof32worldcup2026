@@ -74,11 +74,10 @@ html, body {
 /* header logo */
 .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .brand-badge {
-  width: 40px; height: 40px; border-radius: 11px; flex: none;
-  display: grid; place-items: center; font-weight: 900; font-size: 1rem; letter-spacing: -0.02em;
-  color: #04130d; background: linear-gradient(150deg, var(--green), #7ef0c4);
+  width: 40px; height: 40px; border-radius: 11px; flex: none; overflow: hidden;
   box-shadow: 0 6px 18px rgba(46, 230, 160, 0.28);
 }
+.brand-svg { width: 100%; height: 100%; display: block; }
 
 /* ---------- header ---------- */
 header { margin-bottom: 22px; }
