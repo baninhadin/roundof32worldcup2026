@@ -62,7 +62,10 @@ describe('Group A golden oracle (corrected for 2026 rules)', () => {
       ],
     };
     const a = classifyGroup(group).find((v) => v.teamId === 'A')!;
-    expect(a.headline.toLowerCase()).toContain('waiting on the group');
+    // A can't make the top two (B and C are clear above it), so it reads as a
+    // best-third hope, computed from the remaining match, not a bail-out.
+    expect(a.headline.toLowerCase()).toContain('best third');
+    expect(a.status).not.toBe('qualified');
   });
 
   it('no em-dashes in any generated copy', () => {

@@ -129,19 +129,17 @@ function describe(
     };
   }
 
-  // Team has played all its games but the group has not finished (other matches left).
+  // Team has played all its games but the group has not finished. Its fate is fixed
+  // by the remaining matches, so compute the verdict from those rather than bailing.
   if (ownIdx.length === 0) {
-    return {
-      headline: 'Games done, waiting on the group',
-      conditions: [
-        {
-          outcome: 'Done',
-          lines: ['Played all its games. What happens now depends on the other matches in the group.'],
-          guarantees: false,
-        },
-      ],
-      disclaims: false,
-    };
+    const { lines, note, usedGd } = summarizeOwn(group, evals, otherIdx, unplayed);
+    const alive = evals.some((e) => e.status === 'in' || e.status === 'gd');
+    const headline = !alive
+      ? 'Best third hopes only'
+      : otherIdx.length === 1
+        ? 'Comes down to the last game'
+        : 'Down to the other results';
+    return { headline, conditions: [{ outcome: 'Result', lines, note, guarantees: false }], disclaims: usedGd };
   }
 
   // Endgame: exactly one own match left. Full breakdown by W/D/L.
@@ -153,7 +151,7 @@ function describe(
     for (const own of ['Win', 'Draw', 'Loss'] as OwnResult[]) {
       const subset = evals.filter((e) => e.own[0] === own);
       if (subset.length === 0) continue;
-      const { lines, note, guarantees, usedGd } = summarizeOwn(group, own, subset, otherIdx, unplayed);
+      const { lines, note, guarantees, usedGd } = summarizeOwn(group, subset, otherIdx, unplayed);
       disclaims = disclaims || usedGd;
       conditions.push({ outcome: own, lines, note, guarantees });
     }
@@ -172,7 +170,6 @@ const opponentName = (group: Group, m: { home: TeamId; away: TeamId }, teamId: T
 /** Summarize all sub-worlds for one own result, covering every path. */
 function summarizeOwn(
   group: Group,
-  own: OwnResult,
   subset: WorldEval[],
   otherIdx: number[],
   unplayed: { home: TeamId; away: TeamId }[],

@@ -1,4 +1,5 @@
 import { recordFor } from './standings';
+import { rankGroup } from './tiebreak';
 import {
   enumerateWorlds,
   playedMatches,
@@ -34,6 +35,22 @@ export function groupFeasibility(group: Group): GroupFeasibility {
   const teamIds = group.teams.map((t) => t.id);
   const played = playedMatches(group.matches);
   const unplayed = unplayedMatches(group.matches);
+
+  // Group finished: positions are exact (real goal difference), so rank them
+  // directly instead of the goal-difference-blind W/D/L boundary.
+  if (unplayed.length === 0) {
+    const { ordered } = rankGroup(teamIds, group.matches);
+    const byTeam = new Map<TeamId, TeamFeasibility>();
+    ordered.forEach((id, idx) => {
+      byTeam.set(id, {
+        canMakeTopTwo: idx < 2,
+        canFinishThird: idx < 3,
+        maxPoints: recordFor(id, played).points,
+      });
+    });
+    return { byTeam, minThirdPoints: recordFor(ordered[2], group.matches).points };
+  }
+
   const worlds = enumerateWorlds(unplayed);
 
   const byTeam = new Map<TeamId, TeamFeasibility>();

@@ -35,6 +35,29 @@ describe('elimination — example 1: lose all three is mathematically out', () =
   });
 });
 
+describe('finished group: 3rd vs 4th decided by real goal difference', () => {
+  it('eliminates the 4th-placed team even when level on points and head-to-head', () => {
+    // C and D both finish on 1 point and drew head-to-head, but C has the better
+    // goal difference, so C is 3rd (alive) and D is 4th (out). The group is over,
+    // so goal difference is real and must separate them.
+    const group: Group = {
+      name: 'Z',
+      teams: ['A', 'B', 'C', 'D'].map((n) => ({ id: n, name: n })),
+      matches: [
+        m('A', 'B', 1, 0),
+        m('A', 'C', 1, 0),
+        m('A', 'D', 3, 0),
+        m('B', 'C', 1, 0),
+        m('B', 'D', 1, 0),
+        m('C', 'D', 0, 0), // C and D level on 1 point, drew head-to-head; C has better GD
+      ],
+    };
+    const elim = eliminations([group]);
+    expect(elim.get('D')).toBe('last'); // 4th on goal difference -> out
+    expect(elim.get('C')).not.toBe('last'); // 3rd -> still alive for a best-third spot
+  });
+});
+
 describe('elimination — example 2: can finish 3rd but cannot reach the 8 best thirds', () => {
   it('eliminates a 3rd-placed team when 8 groups have stronger thirds', () => {
     // 8 "strong" finished groups: their 3rd-placed team has 3 points.
