@@ -104,6 +104,7 @@ export function classifyGroup(group: Group): TeamVerdict[] {
       status,
       played.length === group.matches.length,
       qualifyReason,
+      topTwoWorldFraction,
     );
 
     return {
@@ -159,6 +160,7 @@ function describe(
   status: Status,
   groupFinished: boolean,
   qualifyReason?: string,
+  topTwoFraction = 0,
 ): { headline: string; conditions: Condition[]; disclaims: boolean } {
   if (status === 'qualified') {
     const note = groupFinished
@@ -186,7 +188,7 @@ function describe(
   // Team has played all its games but the group has not finished. Its fate is fixed
   // by the remaining matches, so compute the verdict from those rather than bailing.
   if (ownIdx.length === 0) {
-    const { lines, note, usedGd } = summarizeOwn(group, evals, otherIdx, unplayed);
+    const { lines, note, usedGd } = summarizeOwn(group, teamId, evals, otherIdx, unplayed);
     const alive = evals.some((e) => e.status === 'in' || e.status === 'gd');
     const headline = !alive
       ? 'Best third hopes only'
@@ -205,7 +207,7 @@ function describe(
     for (const own of ['Win', 'Draw', 'Loss'] as OwnResult[]) {
       const subset = evals.filter((e) => e.own[0] === own);
       if (subset.length === 0) continue;
-      const { lines, note, guarantees, usedGd } = summarizeOwn(group, subset, otherIdx, unplayed);
+      const { lines, note, guarantees, usedGd } = summarizeOwn(group, teamId, subset, otherIdx, unplayed);
       disclaims = disclaims || usedGd;
       conditions.push({ outcome: own, lines, note, guarantees });
     }
@@ -215,7 +217,7 @@ function describe(
   }
 
   // Earlier rounds (more than one own match): too early for a sharp verdict.
-  return earlyRound();
+  return earlyRound(topTwoFraction);
 }
 
 const opponentName = (group: Group, m: { home: TeamId; away: TeamId }, teamId: TeamId): string =>
@@ -224,6 +226,7 @@ const opponentName = (group: Group, m: { home: TeamId; away: TeamId }, teamId: T
 /** Summarize all sub-worlds for one own result, covering every path. */
 function summarizeOwn(
   group: Group,
+  teamId: TeamId,
   subset: WorldEval[],
   otherIdx: number[],
   unplayed: { home: TeamId; away: TeamId }[],
@@ -238,11 +241,7 @@ function summarizeOwn(
     return { lines: ['Out from top two. Only hope for best third'], guarantees: false, usedGd: false };
   }
   if (s.size === 1 && s.has('gd')) {
-    return {
-      lines: [`Level on points with ${rivalNames(group, subset)}, head to head is level too, so goal difference decides`],
-      guarantees: false,
-      usedGd: true,
-    };
+    return { lines: [gdLine(group, teamId, subset)], guarantees: false, usedGd: true };
   }
 
   // Mixed across the other match. One line per distinct other-match outcome.
@@ -255,12 +254,32 @@ function summarizeOwn(
       const cond = describeMatch(group, om, o);
       if (e.status === 'in') lines.push(`If ${cond}, qualifies`);
       else if (e.status === 'out') lines.push(`If ${cond}, out (best third only)`);
-      else lines.push(`If ${cond}, level with ${nameList(group, e.tiedWith)}, goal difference decides`);
+      else lines.push(`If ${cond}, ${gdLine(group, teamId, [e])}`);
     }
     return { lines, guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
   }
 
   return { lines: ['Depends on the other group results'], guarantees: false, usedGd: subset.some((e) => e.status === 'gd') };
+}
+
+/** A goal-difference tiebreak line that states the actual margin needed, using the
+ *  current GD gap to the tied rival, instead of a vague "goal difference decides". */
+function gdLine(group: Group, teamId: TeamId, subset: WorldEval[]): string {
+  const rivals = new Set<TeamId>();
+  for (const e of subset) for (const id of e.tiedWith) rivals.add(id);
+  const ids = [...rivals];
+  if (ids.length !== 1) {
+    return `level on points with ${nameList(group, ids)}, head to head level, so goal difference decides`;
+  }
+  const rn = nameOf(group, ids[0]);
+  const gap = recordFor(teamId, group.matches).goalDiff - recordFor(ids[0], group.matches).goalDiff;
+  if (gap > 0) {
+    return `level on points with ${rn}, but ${gap} ahead on goal difference, so through unless ${rn} outscore it by ${gap + 1}+`;
+  }
+  if (gap === 0) {
+    return `level on points and goal difference with ${rn}, so it needs the bigger win on the day`;
+  }
+  return `level on points with ${rn} and ${-gap} behind on goal difference, so it must outscore ${rn} by ${-gap + 1}+`;
 }
 
 /** If a guaranteed result hinges on winning a points tie via head-to-head, say so:
@@ -345,13 +364,19 @@ function findBlocker(
 
 /** Concrete target for teams with more than one match left. Only claims a
  *  guarantee when enumeration confirms it holds in every world. */
-function earlyRound(): { headline: string; conditions: Condition[]; disclaims: boolean } {
-  // With two or more games still to play it is too early for a sharp verdict, so
-  // the app says so plainly rather than over-stating an outlook.
+function earlyRound(topTwoFraction: number): { headline: string; conditions: Condition[]; disclaims: boolean } {
+  // With two or more games still to play it is too early for a sharp verdict, but the
+  // loop already knows the share of remaining scenarios where the team finishes top two.
+  const pct = Math.round(topTwoFraction * 100);
   return {
     headline: 'Need more games',
     conditions: [
-      { outcome: 'Too early', lines: ['Need more games to calculate a clear verdict.'], guarantees: false },
+      {
+        outcome: 'Too early',
+        lines: ['Need more games for a clear verdict.'],
+        note: `Finishes top two in ${pct}% of the remaining scenarios, if every result were equally likely.`,
+        guarantees: false,
+      },
     ],
     disclaims: false,
   };
