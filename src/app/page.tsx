@@ -127,16 +127,6 @@ function useDialog<T extends HTMLElement>() {
   return ref;
 }
 
-// Email rendered only after mount, so the address is not in the static HTML scrapers read.
-function EmailLink() {
-  const [addr, setAddr] = useState('');
-  useEffect(() => {
-    setAddr(['baninhadin', 'gmail.com'].join('@'));
-  }, []);
-  if (!addr) return <span>email</span>;
-  return <a href={`mailto:${addr}`}>{addr}</a>;
-}
-
 export default function Page() {
   const [data, setData] = useState<LoadResult>(() => bundledGroups());
   const [loading, setLoading] = useState(true);
@@ -856,9 +846,6 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
             </div>
           </form>
         )}
-        <p className="suggest-direct">
-          Prefer email? Write to <EmailLink />
-        </p>
       </div>
     </div>
   );

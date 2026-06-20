@@ -411,8 +411,6 @@ table.mini tbody tr:hover { background: transparent; }
 .suggest-send:disabled { opacity: 0.5; cursor: default; }
 .suggest-err { color: var(--red); font-size: 0.85rem; }
 .suggest-thanks { color: var(--green); font-size: 0.98rem; padding: 8px 0 6px; }
-.suggest-direct { margin: 14px 0 0; font-size: 0.83rem; color: var(--faint); }
-.suggest-direct a { color: var(--blue); }
 
 .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin: 16px 0 24px; align-items: center; }
 .legend .sw { display: inline-flex; align-items: center; gap: 7px; }
