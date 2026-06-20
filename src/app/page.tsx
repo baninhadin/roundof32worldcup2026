@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { classifyTournament, type Group, type TeamId, type TeamVerdict } from '@/engine';
 import { standingsView, type StandingsRow } from '@/lib/standingsView';
 import { loadGroups, bundledGroups, type LoadResult } from '@/data/load';
@@ -85,6 +85,58 @@ function matchesFor(group: Group, teamId: TeamId, editableKeys: Set<string>): Ma
     });
 }
 
+/** Relative "updated X ago" label. The tick arg just forces periodic re-render. */
+function agoText(d: Date | null, _tick: number): string {
+  if (!d) return 'just now';
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins <= 0) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const h = Math.floor(mins / 60);
+  return h === 1 ? '1 hr ago' : `${h} hr ago`;
+}
+
+// Accessibility for modals: move focus in on open, trap Tab, restore focus on close.
+function useDialog<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const node = ref.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    node?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !node) return;
+      const items = node.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    node?.addEventListener('keydown', onKey);
+    return () => {
+      node?.removeEventListener('keydown', onKey);
+      previouslyFocused?.focus?.();
+    };
+  }, []);
+  return ref;
+}
+
+// Email rendered only after mount, so the address is not in the static HTML scrapers read.
+function EmailLink() {
+  const [addr, setAddr] = useState('');
+  useEffect(() => {
+    setAddr(['baninhadin', 'gmail.com'].join('@'));
+  }, []);
+  if (!addr) return <span>email</span>;
+  return <a href={`mailto:${addr}`}>{addr}</a>;
+}
+
 export default function Page() {
   const [data, setData] = useState<LoadResult>(() => bundledGroups());
   const [loading, setLoading] = useState(true);
@@ -94,6 +146,7 @@ export default function Page() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [sim, setSim] = useState(false);
   const [overrides, setOverrides] = useState<Overrides>({});
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -105,6 +158,21 @@ export default function Page() {
     });
     return () => {
       alive = false;
+    };
+  }, []);
+
+  // Keep it as fresh as the source allows: re-fetch quietly while the tab is open,
+  // and only replace the data when a live fetch actually succeeds.
+  useEffect(() => {
+    const refetch = setInterval(() => {
+      loadGroups().then((r) => {
+        if (r.source === 'live') setData(r);
+      });
+    }, 90_000);
+    const clock = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => {
+      clearInterval(refetch);
+      clearInterval(clock);
     };
   }, []);
 
@@ -249,7 +317,7 @@ export default function Page() {
             {loading
               ? 'Updating…'
               : data.source === 'live'
-                ? 'Live results'
+                ? `Live results · updated ${agoText(data.fetchedAt, tick)}`
                 : 'Saved data (offline)'}
           </span>
           <button className="pill btn" onClick={() => setHowOpen(true)}>
@@ -421,13 +489,22 @@ interface TeamModalProps {
 
 function TeamModal({ v, r, upcoming, matches, sim, onSetScore, onClearScore, onClose }: TeamModalProps) {
   const [showMatches, setShowMatches] = useState(sim);
+  const dialogRef = useDialog<HTMLDivElement>();
   const flag = flagClass(v.teamName);
   const statusLabel =
     v.status === 'qualified' ? 'Qualified' : v.status === 'eliminated' ? 'Eliminated' : 'In contention';
 
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${v.teamName} qualification verdict`}
+      >
         <div className="modal-top">
           {flag && <span className={`flag-lg ${flag}`} />}
           <div>
@@ -572,9 +649,18 @@ function TeamModal({ v, r, upcoming, matches, sim, onSetScore, onClearScore, onC
 }
 
 function RulesModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useDialog<HTMLDivElement>();
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="modal rules" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal rules"
+        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="How qualification works"
+      >
         <div className="modal-top">
           <h3>How qualification works</h3>
           <button className="modal-close" onClick={onClose} aria-label="Close">
@@ -618,9 +704,18 @@ function RulesModal({ onClose }: { onClose: () => void }) {
 }
 
 function HowModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useDialog<HTMLDivElement>();
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="modal rules" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal rules"
+        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="How it works"
+      >
         <div className="modal-top">
           <h3>How it works</h3>
           <button className="modal-close" onClick={onClose} aria-label="Close">
@@ -689,6 +784,7 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const dialogRef = useDialog<HTMLDivElement>();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -715,7 +811,15 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="modal suggest" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal suggest"
+        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Suggest an improvement"
+      >
         <div className="modal-top">
           <h3>Suggest an improvement</h3>
           <button className="modal-close" onClick={onClose} aria-label="Close">
@@ -753,8 +857,7 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
           </form>
         )}
         <p className="suggest-direct">
-          Prefer email? Write to{' '}
-          <a href="mailto:baninhadin@gmail.com">baninhadin@gmail.com</a>
+          Prefer email? Write to <EmailLink />
         </p>
       </div>
     </div>

@@ -145,6 +145,11 @@ html.theming, html.theming *, html.theming *::before {
 /* ---------- grid + cards ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(410px, 1fr)); gap: 18px; }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .wrap { padding: 22px 14px 70px; } }
+/* On phones, drop GF and GA (columns 7 and 8) to keep the table readable; GD and Pts stay. */
+@media (max-width: 470px) {
+  .grid table thead th:nth-child(7), .grid table thead th:nth-child(8),
+  .grid table tbody td:nth-child(7), .grid table tbody td:nth-child(8) { display: none; }
+}
 
 .card {
   background: linear-gradient(180deg, var(--panel), var(--bg-2));
