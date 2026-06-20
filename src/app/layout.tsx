@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/react';
 import 'flag-icons/css/flag-icons.min.css';
 import './globals.css';
 
-const SITE_URL = 'https://roundof32worldcup2026.vercel.app';
+const SITE_URL = 'https://roundof32worldcup2026.com';
 const TITLE = 'What does my team need to qualify? | World Cup 2026 Group Stage';
 const DESCRIPTION =
   'A plain-English qualification calculator for the 2026 World Cup group stage. Pick a team and see exactly what it needs to reach the Round of 32. Not a simulator, it computes every permutation and gives the answer.';

@@ -4,7 +4,7 @@ A plain-English qualification calculator for the 2026 World Cup group stage. Pic
 one short verdict, exactly what it needs to reach the Round of 32. For example: "South Korea, win or
 draw vs South Africa."
 
-**Live:** https://roundof32worldcup2026.vercel.app
+**Live:** https://roundof32worldcup2026.com
 
 It is a calculator, not a simulator. Simulators make you type in scorelines and read a table. This does
 the opposite: it runs every remaining result combination itself and gives you the conclusion, per team.
