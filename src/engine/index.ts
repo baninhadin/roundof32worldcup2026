@@ -18,7 +18,7 @@ export interface GroupVerdicts {
 function eliminatedVerdict(base: TeamVerdict, reason: EliminationReason): TeamVerdict {
   const line =
     reason === 'last'
-      ? 'Finished bottom of the group, out of the top two and the best thirds'
+      ? 'Stuck at the bottom of the group, out of the top two and the best thirds'
       : "Can't make the top two and can't reach the 8 best thirds";
   return {
     ...base,

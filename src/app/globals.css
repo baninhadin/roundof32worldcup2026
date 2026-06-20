@@ -95,14 +95,21 @@ header { margin-bottom: 22px; }
 .subtitle { color: var(--muted); margin: 0 0 16px; font-size: 1.02rem; }
 
 .bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+/* Static info chips: flat labels, clearly not clickable. */
 .pill {
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 12px; border-radius: 999px;
-  border: 1px solid var(--border-2); background: var(--panel);
+  padding: 6px 11px; border-radius: 999px;
+  border: 1px solid transparent; background: none;
   font-size: 0.82rem; color: var(--muted);
 }
-.pill.btn { cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s; }
-.pill.btn:hover { background: var(--panel-2); border-color: var(--green-deep); color: var(--text); }
+/* Action buttons: raised, bordered, with hover, clearly clickable. */
+.pill.btn {
+  cursor: pointer;
+  background: var(--panel); border-color: var(--border-2); color: var(--text);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.pill.btn:hover { background: var(--panel-2); border-color: var(--green-deep); }
 .pill.btn:active { transform: translateY(1px); }
 .pill.btn.icon { padding: 6px 11px; font-size: 0.95rem; line-height: 1; }
 

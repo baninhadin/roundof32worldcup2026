@@ -429,6 +429,7 @@ function TeamModal({ v, r, upcoming, matches, sim, onSetScore, onClearScore, onC
                         max={20}
                         value={mt.gf ?? ''}
                         placeholder="0"
+                        onFocus={(e) => e.currentTarget.select()}
                         onChange={(e) => setGoals(clamp(+e.target.value), mt.ga ?? 0)}
                       />
                       <span className="dash">-</span>
@@ -438,6 +439,7 @@ function TeamModal({ v, r, upcoming, matches, sim, onSetScore, onClearScore, onC
                         max={20}
                         value={mt.ga ?? ''}
                         placeholder="0"
+                        onFocus={(e) => e.currentTarget.select()}
                         onChange={(e) => setGoals(mt.gf ?? 0, clamp(+e.target.value))}
                       />
                       {mt.gf !== null && (
@@ -559,20 +561,22 @@ function HowModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="how-lead">
-          It does the simulating for you. Instead of making you enter scores and read a table, it works
+          A calculator, not a simulator. Instead of making you enter scores and read a table, it works
           out what every team needs and tells you in one line.
         </p>
-        <h4>Step by step</h4>
+        <h4>How it calculates</h4>
         <ol>
           <li>It takes the results so far plus the fixtures still to play.</li>
-          <li>It plays out every possible combination of the remaining results (win, draw, loss).</li>
+          <li>It checks every possible combination of the remaining results (win, draw, loss).</li>
           <li>Points and head to head come straight from those, so &quot;qualified&quot; and &quot;eliminated&quot; are exact.</li>
           <li>Goal difference is solved as a threshold (&quot;win by 2 or more&quot;), never guessed.</li>
           <li>It ranks the twelve 3rd-placed teams to work out the 8 best thirds.</li>
-          <li>Tap any team for its verdict. Flip on Simulate to set your own results and watch it change.</li>
+          <li>Tap any team for its verdict.</li>
         </ol>
         <p className="how-foot">
-          The headline is always the deterministic answer. Nothing here is a prediction.
+          The verdict is always the deterministic answer, never a prediction. Want to try your own
+          results? Flip on Simulate and set the scorelines yourself, that is the one part where you do
+          the simulating.
         </p>
       </div>
     </div>

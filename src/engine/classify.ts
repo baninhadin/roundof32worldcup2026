@@ -162,8 +162,8 @@ function describe(
     return { headline, conditions, disclaims };
   }
 
-  // Earlier rounds (more than one own match): compute a concrete, correct target.
-  return earlyRound(group, teamId, evals, ownIdx, unplayed);
+  // Earlier rounds (more than one own match): too early for a sharp verdict.
+  return earlyRound();
 }
 
 const opponentName = (group: Group, m: { home: TeamId; away: TeamId }, teamId: TeamId): string =>
@@ -283,44 +283,14 @@ function findBlocker(
 
 /** Concrete target for teams with more than one match left. Only claims a
  *  guarantee when enumeration confirms it holds in every world. */
-function earlyRound(
-  group: Group,
-  teamId: TeamId,
-  evals: WorldEval[],
-  ownIdx: number[],
-  unplayed: { home: TeamId; away: TeamId }[],
-): { headline: string; conditions: Condition[]; disclaims: boolean } {
-  const nextOpp = opponentName(group, unplayed[ownIdx[0]], teamId);
-  const left = ownIdx.length;
-  const wins = (e: WorldEval) => e.own.filter((r) => r === 'Win').length;
-  const allIn = (s: WorldEval[]) => s.length > 0 && s.every((e) => e.status === 'in');
-  const neverOut = (s: WorldEval[]) => s.length > 0 && s.every((e) => e.status !== 'out');
-
-  const byNextWin = evals.filter((e) => e.own[0] === 'Win');
-  const byOneWin = evals.filter((e) => wins(e) >= 1);
-  const byAllWin = evals.filter((e) => wins(e) === e.own.length);
-
-  let headline: string;
-  let line: string;
-  if (allIn(byNextWin)) {
-    headline = `Beat ${nextOpp} to qualify`;
-    line = `A win over ${nextOpp} next puts them through no matter what else happens`;
-  } else if (allIn(byOneWin)) {
-    headline = `Win any of the last ${left} to qualify`;
-    line = `Any win from the games left puts them through`;
-  } else if (allIn(byAllWin)) {
-    headline = `Win out to qualify`;
-    line = `Win every game left and they're through, anything less might come down to other results`;
-  } else if (neverOut(byAllWin)) {
-    headline = `Win out, goal difference may decide`;
-    line = `Win out and they're through in almost every case, bar one that comes down to goal difference`;
-  } else if (evals.some((e) => e.status === 'in' || e.status === 'gd')) {
-    headline = 'Still in contention';
-    line = `Still able to reach the top two, nothing locked in yet, ${nextOpp} up next`;
-  } else {
-    headline = 'Needs help';
-    line = `Can't reach the top two on their own, they need other results to help`;
-  }
-
-  return { headline, conditions: [{ outcome: 'Outlook', lines: [line], guarantees: false }], disclaims: false };
+function earlyRound(): { headline: string; conditions: Condition[]; disclaims: boolean } {
+  // With two or more games still to play it is too early for a sharp verdict, so
+  // the app says so plainly rather than over-stating an outlook.
+  return {
+    headline: 'Need more games',
+    conditions: [
+      { outcome: 'Too early', lines: ['Need more games to calculate a clear verdict.'], guarantees: false },
+    ],
+    disclaims: false,
+  };
 }
