@@ -15,8 +15,8 @@ export default function OgImage() {
           flexDirection: 'column',
           justifyContent: 'center',
           padding: '80px',
-          background: '#0a0a0c',
-          color: '#f6f6f8',
+          background: '#0b0e14',
+          color: '#eef1f6',
           fontFamily: 'sans-serif',
         }}
       >
@@ -26,13 +26,13 @@ export default function OgImage() {
               width: 96,
               height: 96,
               borderRadius: 22,
-              background: 'linear-gradient(150deg, #ff3344, #b3121f)',
+              background: 'linear-gradient(150deg, #2ee6a0, #16b683)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 52,
               fontWeight: 900,
-              color: '#fff',
+              color: '#04130d',
             }}
           >
             32
@@ -51,7 +51,7 @@ export default function OgImage() {
         >
           <div style={{ display: 'flex' }}>What does my team</div>
           <div style={{ display: 'flex' }}>
-            need to&nbsp;<span style={{ color: '#ff3344' }}>qualify?</span>
+            need to&nbsp;<span style={{ color: '#2ee6a0' }}>qualify?</span>
           </div>
         </div>
         <div style={{ fontSize: 32, color: '#9a9aa6', marginTop: 34 }}>

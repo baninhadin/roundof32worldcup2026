@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0a0a0c',
+  themeColor: '#0b0e14',
 };
 
 // Set the saved theme before paint so there's no flash of the wrong theme.
