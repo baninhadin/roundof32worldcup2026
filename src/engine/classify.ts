@@ -37,6 +37,7 @@ interface WorldEval {
   status: BoundaryStatus;
   tiedWith: TeamId[];
   wonHeadToHeadOver: TeamId[];
+  aheadOnLockedGd: TeamId[];
 }
 
 export function classifyGroup(group: Group): TeamVerdict[] {
@@ -60,13 +61,23 @@ export function classifyGroup(group: Group): TeamVerdict[] {
 
     const evals: WorldEval[] = worlds.map((world) => {
       const wm = worldMatches(played, unplayed, world);
-      const b = topTwoBoundary(team.id, teamIds, wm);
+      // A team's final GD is locked unless a remaining game of its could still move
+      // it. A draw adds 0 to GD, so a draw doesn't unlock; only a win/loss does.
+      const gdLocked = new Set(teamIds);
+      unplayed.forEach((mt, i) => {
+        if (world[i] !== 'DRAW') {
+          gdLocked.delete(mt.home);
+          gdLocked.delete(mt.away);
+        }
+      });
+      const b = topTwoBoundary(team.id, teamIds, wm, 2, gdLocked);
       return {
         own: ownIdx.map((i) => ownResult(unplayed[i], team.id, world[i])),
         otherOutcomes: otherIdx.map((i) => world[i]),
         status: b.status,
         tiedWith: b.tiedWith,
         wonHeadToHeadOver: b.wonHeadToHeadOver,
+        aheadOnLockedGd: b.aheadOnLockedGd,
       };
     });
 
@@ -188,7 +199,8 @@ function summarizeOwn(
   const s = new Set(subset.map((e) => e.status));
 
   if (s.size === 1 && s.has('in')) {
-    return { lines: ['Qualified for the Round of 32'], note: headToHeadNote(group, subset), guarantees: true, usedGd: false };
+    const note = headToHeadNote(group, subset) ?? lockedGdNote(group, subset);
+    return { lines: ['Qualified for the Round of 32'], note, guarantees: true, usedGd: false };
   }
   if (s.size === 1 && s.has('out')) {
     return { lines: ['Out from top two. Only hope for best third'], guarantees: false, usedGd: false };
@@ -227,6 +239,16 @@ function headToHeadNote(group: Group, subset: WorldEval[]): string | undefined {
   if (ids.size === 0) return undefined;
   const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
   return `Won the head to head with ${names} (tiebreaker 2)`;
+}
+
+/** When a result is enough because of an already-locked goal difference (a draw
+ *  can't move the gap), explain it. */
+function lockedGdNote(group: Group, subset: WorldEval[]): string | undefined {
+  const ids = new Set<TeamId>();
+  for (const e of subset) for (const id of e.aheadOnLockedGd) ids.add(id);
+  if (ids.size === 0) return undefined;
+  const names = [...ids].map((id) => nameOf(group, id)).join(' and ');
+  return `Ahead of ${names} on goal difference, and a draw can't change that`;
 }
 
 const nameList = (group: Group, ids: TeamId[]): string =>

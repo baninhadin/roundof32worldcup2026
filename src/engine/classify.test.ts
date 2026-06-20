@@ -68,6 +68,37 @@ describe('Group A golden oracle (corrected for 2026 rules)', () => {
     expect(a.status).not.toBe('qualified');
   });
 
+  it('a draw between two level teams resolves on locked goal difference, not "decides"', () => {
+    // Group D shape: USA clear 1st. Australia (GD 0) and Paraguay (GD -2) are level on
+    // points and play each other last. A draw freezes the GD gap, so Australia is
+    // through and Paraguay is out, definitively, no "goal difference decides".
+    const group = {
+      name: 'D',
+      teams: ['USA', 'Australia', 'Paraguay', 'Turkey'].map((n) => ({ id: n, name: n })),
+      matches: [
+        { home: 'USA', away: 'Paraguay', homeGoals: 4, awayGoals: 1 },
+        { home: 'Australia', away: 'Turkey', homeGoals: 2, awayGoals: 0 },
+        { home: 'USA', away: 'Australia', homeGoals: 2, awayGoals: 0 },
+        { home: 'Turkey', away: 'Paraguay', homeGoals: 0, awayGoals: 1 },
+        { home: 'Turkey', away: 'USA', homeGoals: null, awayGoals: null },
+        { home: 'Paraguay', away: 'Australia', homeGoals: null, awayGoals: null },
+      ],
+    };
+    const v = classifyGroup(group);
+    const aus = v.find((x) => x.teamId === 'Australia')!;
+    const par = v.find((x) => x.teamId === 'Paraguay')!;
+    // Australia draws -> through, with a locked-GD note, not "goal difference decides".
+    const ausDraw = aus.conditions.find((c) => c.outcome === 'Draw')!;
+    expect(ausDraw.guarantees).toBe(true);
+    expect((ausDraw.note ?? '').toLowerCase()).toContain('goal difference');
+    expect(ausDraw.lines.join(' ').toLowerCase()).not.toContain('decides');
+    expect(aus.headline.toLowerCase()).toContain('win or draw');
+    // Paraguay draws -> out, not "decides".
+    const parDraw = par.conditions.find((c) => c.outcome === 'Draw')!;
+    expect(parDraw.guarantees).toBe(false);
+    expect(parDraw.lines.join(' ').toLowerCase()).not.toContain('decides');
+  });
+
   it('no em-dashes in any generated copy', () => {
     for (const v of verdicts) {
       expect(v.headline).not.toContain('—');

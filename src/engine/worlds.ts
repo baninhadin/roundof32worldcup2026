@@ -59,13 +59,26 @@ export interface Boundary {
   /** Peers tied on points whom this team finishes ABOVE on head-to-head points
    *  (the "why" behind a result being enough under the 2026 H2H-first rule). */
   wonHeadToHeadOver: TeamId[];
+  /** Peers this team finishes above on a goal difference that is already LOCKED
+   *  (e.g. a draw between the two tied teams can't move the gap). */
+  aheadOnLockedGd: TeamId[];
 }
+
+const emptyBoundary = (status: BoundaryStatus): Boundary => ({
+  status,
+  tiedWith: [],
+  wonHeadToHeadOver: [],
+  aheadOnLockedGd: [],
+});
 
 export function topTwoBoundary(
   teamId: TeamId,
   teamIds: TeamId[],
   matches: Match[],
   cutoff = 2,
+  /** Teams whose final goal difference is already locked (no remaining game can
+   *  move it, e.g. their only game left is a draw). Lets a GD tie resolve now. */
+  gdLocked?: Set<TeamId>,
 ): Boundary {
   const pts = new Map<TeamId, number>();
   for (const id of teamIds) pts.set(id, recordFor(id, matches).points);
@@ -76,7 +89,7 @@ export function topTwoBoundary(
 
   if (cluster.length === 1) {
     // No one shares my points: position is fixed by points alone.
-    return { status: above <= cutoff - 1 ? 'in' : 'out', tiedWith: [], wonHeadToHeadOver: [] };
+    return emptyBoundary(above <= cutoff - 1 ? 'in' : 'out');
   }
 
   // Criterion 2: head-to-head points among the tied cluster only.
@@ -92,10 +105,25 @@ export function topTwoBoundary(
   const best = above + strictlyAbove; // 0-based best possible position
   const worst = best + tiedPeers.length; // if every tied peer edges above me
 
-  if (worst <= cutoff - 1) return { status: 'in', tiedWith: [], wonHeadToHeadOver };
-  if (best >= cutoff) return { status: 'out', tiedWith: [], wonHeadToHeadOver: [] };
-  // The cut runs through a head-to-head-points tie -> goal difference decides.
-  return { status: 'gd', tiedWith: tiedPeers, wonHeadToHeadOver };
+  if (worst <= cutoff - 1) return { ...emptyBoundary('in'), wonHeadToHeadOver };
+  if (best >= cutoff) return emptyBoundary('out');
+
+  // The cut runs through a head-to-head-points tie. Normally goal difference is an
+  // open threshold, but if every tied team's GD is already LOCKED, it's decided now.
+  if (gdLocked && teamId && tiedPeers.every((id) => gdLocked.has(id)) && gdLocked.has(teamId)) {
+    const gd = (id: TeamId) => recordFor(id, matches).goalDiff;
+    const myGd = gd(teamId);
+    const gdAbove = tiedPeers.filter((id) => gd(id) > myGd).length;
+    const gdEqual = tiedPeers.filter((id) => gd(id) === myGd).length;
+    const aheadOnLockedGd = tiedPeers.filter((id) => gd(id) < myGd);
+    const bestPos = best + gdAbove; // 0-based
+    const worstPos = bestPos + gdEqual; // GD ties (goals scored still open) sit below
+    if (worstPos <= cutoff - 1) return { ...emptyBoundary('in'), wonHeadToHeadOver, aheadOnLockedGd };
+    if (bestPos >= cutoff) return emptyBoundary('out');
+    // Otherwise a real GD tie remains among locked teams -> goals scored, still open.
+  }
+
+  return { ...emptyBoundary('gd'), tiedWith: tiedPeers, wonHeadToHeadOver };
 }
 
 /** Final position bucket (1-based) ignoring GD ties — used for best-third
