@@ -184,12 +184,12 @@ export default function Page() {
         <p className="subtitle">World Cup 2026, group stage to the Round of 32</p>
         <div className="bar">
           <span className="pill">
-            <span className={`live-dot ${data.source}`} />
+            <span className={`live-dot ${loading ? 'bundled' : data.source}`} />
             {loading
-              ? 'Checking live results…'
+              ? 'Updating…'
               : data.source === 'live'
                 ? 'Live results'
-                : 'Bundled snapshot'}
+                : 'Saved data (offline)'}
           </span>
           <button className="pill btn" onClick={() => setHowOpen(true)}>
             How it works
