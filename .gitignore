@@ -31,3 +31,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# Local build notes — not for the public repo
+NOTES.md
