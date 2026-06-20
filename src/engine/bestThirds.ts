@@ -1,5 +1,6 @@
 import { recordFor } from './standings';
 import { rankGroup } from './tiebreak';
+import { fifaRankOf } from './fifaRanking';
 import type { BestThirdSnapshot, Group, TeamId } from './types';
 
 export const BEST_THIRDS_ADVANCING = 8;
@@ -44,7 +45,9 @@ export function bestThirdsSnapshot(groups: Group[]): Map<TeamId, BestThirdSnapsh
     (a, b) =>
       b.points - a.points ||
       b.goalDiff - a.goalDiff ||
-      b.goalsFor - a.goalsFor,
+      b.goalsFor - a.goalsFor ||
+      // Final decider: FIFA ranking (criterion 8), so ties are deterministic.
+      fifaRankOf(a.teamId) - fifaRankOf(b.teamId),
   );
 
   const out = new Map<TeamId, BestThirdSnapshot>();

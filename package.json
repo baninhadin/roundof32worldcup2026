@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "cross-env VERIFY=1 vitest run src/engine/verify.test.ts"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -23,6 +24,7 @@
     "@types/node": "22.10.5",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
+    "cross-env": "^10.1.0",
     "jsdom": "^29.1.1",
     "typescript": "5.7.3",
     "vitest": "3.2.4"
