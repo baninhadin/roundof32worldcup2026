@@ -91,6 +91,9 @@ export function classifyGroup(group: Group): TeamVerdict[] {
     const topTwoWorldFraction =
       evals.filter((e) => e.status === 'in' || e.status === 'gd').length / evals.length;
 
+    const qualifyReason =
+      status === 'qualified' ? reasonForQualifying(group, team.id, finalRank) : undefined;
+
     const { headline, conditions, disclaims } = describe(
       group,
       team.id,
@@ -100,6 +103,7 @@ export function classifyGroup(group: Group): TeamVerdict[] {
       unplayed,
       status,
       played.length === group.matches.length,
+      qualifyReason,
     );
 
     return {
@@ -116,6 +120,35 @@ export function classifyGroup(group: Group): TeamVerdict[] {
   });
 }
 
+/** Short "why" for a qualified team: how it secured its top-two place. */
+function reasonForQualifying(
+  group: Group,
+  teamId: TeamId,
+  finalRank: TeamId[] | null,
+): string {
+  if (!finalRank) return 'Locked into the top two, it can no longer be caught';
+  const pos = finalRank.indexOf(teamId);
+  if (pos === 0) return 'Won the group';
+  const third = finalRank[2];
+  return `Finished 2nd, through on ${decidingCriterion(group, teamId, third)}`;
+}
+
+/** The first 2026 criterion that separates two teams (for the qualification "why"). */
+function decidingCriterion(group: Group, aId: TeamId, bId: TeamId): string {
+  const a = recordFor(aId, group.matches);
+  const b = recordFor(bId, group.matches);
+  if (a.points !== b.points) return 'points';
+  const set = new Set([aId, bId]);
+  const ah = recordFor(aId, group.matches, set);
+  const bh = recordFor(bId, group.matches, set);
+  if (ah.points !== bh.points) return 'the head-to-head result';
+  if (ah.goalDiff !== bh.goalDiff) return 'head-to-head goal difference';
+  if (ah.goalsFor !== bh.goalsFor) return 'head-to-head goals scored';
+  if (a.goalDiff !== b.goalDiff) return 'goal difference';
+  if (a.goalsFor !== b.goalsFor) return 'goals scored';
+  return 'FIFA ranking';
+}
+
 function describe(
   group: Group,
   teamId: TeamId,
@@ -125,17 +158,16 @@ function describe(
   unplayed: { home: TeamId; away: TeamId }[],
   status: Status,
   groupFinished: boolean,
+  qualifyReason?: string,
 ): { headline: string; conditions: Condition[]; disclaims: boolean } {
   if (status === 'qualified') {
+    const note = groupFinished
+      ? qualifyReason
+      : (qualifyReason ?? 'Still playing for top spot and seeding');
     return {
       headline: 'Qualified',
       conditions: [
-        {
-          outcome: 'Qualified',
-          lines: ['Qualified for the Round of 32'],
-          note: groupFinished ? undefined : 'Still playing for top spot and seeding',
-          guarantees: true,
-        },
+        { outcome: 'Qualified', lines: ['Qualified for the Round of 32'], note, guarantees: true },
       ],
       disclaims: false,
     };

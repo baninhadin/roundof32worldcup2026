@@ -108,6 +108,38 @@ export default function Page() {
     };
   }, []);
 
+  // Lightweight error alerting: email the owner on the first uncaught error per
+  // session (capped, so a crash loop can't spam). Traffic is tracked by Vercel Analytics.
+  useEffect(() => {
+    let reported = false;
+    const report = (detail: string) => {
+      if (reported) return;
+      reported = true;
+      try {
+        void fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_KEY,
+            subject: 'ERROR — roundof32worldcup2026',
+            from_name: 'Error reporter',
+            message: `${detail}\n\nURL: ${location.href}\nUA: ${navigator.userAgent}`,
+          }),
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+    const onErr = (e: ErrorEvent) => report(`${e.message}\n${e.error?.stack ?? ''}`);
+    const onRej = (e: PromiseRejectionEvent) => report(`Unhandled rejection: ${String(e.reason)}`);
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+    return () => {
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
+    };
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -203,9 +235,6 @@ export default function Page() {
             aria-pressed={sim}
           >
             ⚙ Simulate {sim ? 'on' : 'off'}
-          </button>
-          <button className="pill btn" onClick={() => setSuggestOpen(true)}>
-            Suggest
           </button>
           <ThemeToggle />
         </div>
@@ -337,6 +366,15 @@ export default function Page() {
       {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
       {howOpen && <HowModal onClose={() => setHowOpen(false)} />}
       {suggestOpen && <SuggestModal onClose={() => setSuggestOpen(false)} />}
+
+      {!suggestOpen && (
+        <button className="fab" onClick={() => setSuggestOpen(true)} aria-label="Send feedback">
+          <span className="fab-icon" aria-hidden>
+            💬
+          </span>
+          <span className="fab-label">Feedback</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -561,23 +599,58 @@ function HowModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="how-lead">
-          A calculator, not a simulator. Instead of making you enter scores and read a table, it works
-          out what every team needs and tells you in one line.
+          The whole thing is a pure function that runs in your browser, results and fixtures in, a
+          verdict per team out. No backend, no database, no prediction model. Here is the pipeline.
         </p>
-        <h4>How it calculates</h4>
-        <ol>
-          <li>It takes the results so far plus the fixtures still to play.</li>
-          <li>It checks every possible combination of the remaining results (win, draw, loss).</li>
-          <li>Points and head to head come straight from those, so &quot;qualified&quot; and &quot;eliminated&quot; are exact.</li>
-          <li>Goal difference is solved as a threshold (&quot;win by 2 or more&quot;), never guessed.</li>
-          <li>It ranks the twelve 3rd-placed teams to work out the 8 best thirds.</li>
-          <li>Tap any team for its verdict.</li>
-        </ol>
-        <p className="how-foot">
-          The verdict is always the deterministic answer, never a prediction. Want to try your own
-          results? Flip on Simulate and set the scorelines yourself, that is the one part where you do
-          the simulating.
-        </p>
+
+        <h4>1. Data</h4>
+        <ul>
+          <li>
+            Fetches the public{' '}
+            <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noreferrer">
+              openfootball/worldcup.json
+            </a>{' '}
+            feed client-side, with a bundled snapshot as an offline fallback.
+          </li>
+          <li>Parses the 104 fixtures into a group model. Unplayed games have null scores.</li>
+        </ul>
+
+        <h4>2. Rules (FIFA 2026, Article 13)</h4>
+        <ul>
+          <li>Rank by points, then head-to-head points, then H2H goal difference, then H2H goals.</li>
+          <li>Then overall goal difference, overall goals, fair play, and FIFA ranking.</li>
+          <li>Head-to-head sits ahead of goal difference, which is new for 2026.</li>
+        </ul>
+
+        <h4>3. The calculation</h4>
+        <ul>
+          <li>
+            Enumerate every remaining result as win/draw/loss: 3^(games left), at most a few hundred
+            combinations per group. This is finite and tiny, so we brute-force it.
+          </li>
+          <li>
+            Points and head-to-head are exact from W/D/L, so &quot;qualified&quot; (top two in every
+            combination) and &quot;eliminated&quot; come out exact.
+          </li>
+          <li>
+            Goal difference is never enumerated. It is solved as an inequality: A finishes above B if
+            A.gd + margin &gt; B.gd, so the answer is a threshold (&quot;win by 2 or more&quot;), or, when
+            a draw freezes the gap, already decided.
+          </li>
+          <li>
+            Best thirds: rank the twelve 3rd-placed teams across groups; the top 8 advance. Elimination
+            uses group independence, so it stays tractable rather than enumerating all groups at once.
+          </li>
+        </ul>
+
+        <h4>4. Trust</h4>
+        <ul>
+          <li>
+            The engine is covered by unit tests, including an exhaustive run over 20,000 random
+            finished groups and every Group A final scoreline, asserting exactly two qualify each time.
+          </li>
+          <li>Flip on Simulate to set your own scores. That is the only place anything is simulated.</li>
+        </ul>
       </div>
     </div>
   );
