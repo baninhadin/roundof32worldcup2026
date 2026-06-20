@@ -23,6 +23,8 @@ export interface GroupFeasibility {
   byTeam: Map<TeamId, TeamFeasibility>;
   /** Fewest points the group's 3rd-placed team can end on, across all scenarios. */
   minThirdPoints: number;
+  /** Most points the group's 3rd-placed team can end on, across all scenarios. */
+  maxThirdPoints: number;
 }
 
 /** Points of the team that finishes 3rd = 3rd largest points value in the group. */
@@ -48,7 +50,8 @@ export function groupFeasibility(group: Group): GroupFeasibility {
         maxPoints: recordFor(id, played).points,
       });
     });
-    return { byTeam, minThirdPoints: recordFor(ordered[2], group.matches).points };
+    const thirdPts = recordFor(ordered[2], group.matches).points;
+    return { byTeam, minThirdPoints: thirdPts, maxThirdPoints: thirdPts };
   }
 
   const worlds = enumerateWorlds(unplayed);
@@ -64,10 +67,12 @@ export function groupFeasibility(group: Group): GroupFeasibility {
   }
 
   let minThird = Infinity;
+  let maxThird = 0;
   for (const w of worlds) {
     const wm = worldMatches(played, unplayed, w);
     const t = thirdPlacePoints(teamIds, wm);
     if (t < minThird) minThird = t;
+    if (t > maxThird) maxThird = t;
     for (const id of teamIds) {
       const f = byTeam.get(id)!;
       if (!f.canMakeTopTwo && topTwoBoundary(id, teamIds, wm, 2).status !== 'out') f.canMakeTopTwo = true;
@@ -75,7 +80,7 @@ export function groupFeasibility(group: Group): GroupFeasibility {
     }
   }
 
-  return { byTeam, minThirdPoints: Number.isFinite(minThird) ? minThird : 0 };
+  return { byTeam, minThirdPoints: Number.isFinite(minThird) ? minThird : 0, maxThirdPoints: maxThird };
 }
 
 export type EliminationReason = 'last' | 'bestThird';
@@ -109,4 +114,58 @@ export function eliminations(groups: Group[]): Map<TeamId, EliminationReason> {
   }
 
   return out;
+}
+
+/**
+ * Teams GUARANTEED to reach the Round of 32 via the best-third route (beyond those
+ * already guaranteed top two). Sound by group independence: a team is safe if, in
+ * EVERY remaining scenario of its own group, it is either top two, or finishes 3rd
+ * with at most 7 other groups able to field a third on at least as many points (so
+ * at most 7 thirds can sit above it -> it is no worse than 8th of the twelve thirds).
+ */
+export function guaranteedThirdAdvancers(groups: Group[]): Set<TeamId> {
+  const per = groups.map((g) => ({ name: g.name, feas: groupFeasibility(g) }));
+  const maxThirdOf = new Map(per.map((p) => [p.name, p.feas.maxThirdPoints]));
+  const safe = new Set<TeamId>();
+
+  for (const group of groups) {
+    const teamIds = group.teams.map((t) => t.id);
+    const played = playedMatches(group.matches);
+    const unplayed = unplayedMatches(group.matches);
+    const worlds = enumerateWorlds(unplayed);
+
+    for (const team of group.teams) {
+      let guaranteed = true;
+      let everThird = false;
+
+      for (const w of worlds) {
+        const wm = worldMatches(played, unplayed, w);
+        // Use the boundary checks, not the nominal rank: whether a team is top two
+        // or top three can itself come down to goal difference, so a nominal
+        // position would lie. "in" = safely inside the cut on points + head-to-head.
+        if (topTwoBoundary(team.id, teamIds, wm, 2).status === 'in') continue; // safely top two
+        const topThree = topTwoBoundary(team.id, teamIds, wm, 3).status === 'in';
+        if (!topThree) {
+          guaranteed = false; // could be 4th, or 3rd/4th hinges on goal difference
+          break;
+        }
+        // Safely 3rd: can it be pushed out of the 8? Count other groups whose third
+        // could reach at least its points (a tie could go against it, so count it).
+        everThird = true;
+        const myPts = recordFor(team.id, wm).points;
+        let couldBeAbove = 0;
+        for (const [gName, maxPts] of maxThirdOf) {
+          if (gName !== group.name && maxPts >= myPts) couldBeAbove++;
+        }
+        if (couldBeAbove > BEST_THIRDS_ADVANCING - 1) {
+          guaranteed = false;
+          break;
+        }
+      }
+
+      if (guaranteed && everThird) safe.add(team.id);
+    }
+  }
+
+  return safe;
 }

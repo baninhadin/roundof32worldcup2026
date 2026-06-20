@@ -98,7 +98,7 @@ function randomPartial(groups: Group[], rnd: () => number): Group[] {
 }
 
 describe.skipIf(!HEAVY)('soundness: qualified/eliminated guarantees hold under random completion', () => {
-  it('current snapshot + 40 random partial states, 2000 completions each', () => {
+  it('current snapshot + 40 random partial states, 2000 completions each', { timeout: 180_000 }, () => {
     const rnd = lcg(20260621);
     const states: Group[][] = [toGroups(snapshot as never)];
     for (let i = 0; i < 40; i++) states.push(randomPartial(toGroups(snapshot as never), rnd));

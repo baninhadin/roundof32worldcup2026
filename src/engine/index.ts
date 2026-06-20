@@ -1,12 +1,12 @@
 import { classifyGroup } from './classify';
 import { bestThirdsSnapshot } from './bestThirds';
-import { eliminations, type EliminationReason } from './feasibility';
+import { eliminations, guaranteedThirdAdvancers, type EliminationReason } from './feasibility';
 import type { Group, TeamVerdict } from './types';
 
 export * from './types';
 export { classifyGroup } from './classify';
 export { bestThirdsSnapshot, BEST_THIRDS_ADVANCING } from './bestThirds';
-export { eliminations, groupFeasibility } from './feasibility';
+export { eliminations, guaranteedThirdAdvancers, groupFeasibility } from './feasibility';
 export { rankGroup } from './tiebreak';
 export { recordFor } from './standings';
 
@@ -38,10 +38,28 @@ function eliminatedVerdict(base: TeamVerdict, reason: EliminationReason): TeamVe
 export function classifyTournament(groups: Group[]): GroupVerdicts[] {
   const thirds = bestThirdsSnapshot(groups);
   const elim = eliminations(groups);
+  const safeThirds = guaranteedThirdAdvancers(groups);
   return groups.map((group) => {
     const verdicts = classifyGroup(group).map((v) => {
       const reason = elim.get(v.teamId);
       if (reason) return eliminatedVerdict(v, reason);
+      if (v.status !== 'qualified' && safeThirds.has(v.teamId)) {
+        return {
+          ...v,
+          status: 'qualified' as const,
+          headline: 'Qualified',
+          conditions: [
+            {
+              outcome: 'Qualified',
+              lines: ['Qualified for the Round of 32'],
+              note: 'Safe as one of the 8 best third-placed teams, it can no longer be caught',
+              guarantees: true,
+            },
+          ],
+          bestThird: thirds.get(v.teamId) ?? null,
+          disclaimsDeepTiebreak: false,
+        };
+      }
       return { ...v, bestThird: thirds.get(v.teamId) ?? null };
     });
     return { group, verdicts };

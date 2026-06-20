@@ -40,24 +40,25 @@ describe('property: every remaining-result combination keeps the engine consiste
           const posOf = new Map(rows.map((r) => [r.teamId, r.position]));
           const groupDone = group.matches.every((m) => m.homeGoals !== null);
 
-          let qualified = 0;
+          const byPos = (p: number) => verdicts.find((v) => posOf.get(v.teamId) === p)!;
           for (const v of verdicts) {
             // 1. status is always one of the three
             expect(['qualified', 'contention', 'eliminated']).toContain(v.status);
             const pos = posOf.get(v.teamId)!;
-            // 2. a qualified team must sit in the top two of its group
+            // 2. a qualified team is at worst 3rd (top two, or a guaranteed best third)
             if (v.status === 'qualified') {
-              qualified++;
-              expect(pos, `${v.teamName} qualified but ${pos}th`).toBeLessThanOrEqual(2);
+              expect(pos, `${v.teamName} qualified but ${pos}th`).toBeLessThanOrEqual(3);
             }
             // 3. an eliminated team can never be in the top two
             if (v.status === 'eliminated') {
               expect(pos, `${v.teamName} eliminated but ${pos}th`).toBeGreaterThan(2);
             }
           }
-          // 4. a finished group sends exactly two teams through
+          // 4. in a finished group the top two always go through and the last is out
           if (groupDone) {
-            expect(qualified, `group ${group.name} finished with ${qualified} qualified`).toBe(2);
+            expect(byPos(1).status, `group ${group.name} winner not qualified`).toBe('qualified');
+            expect(byPos(2).status, `group ${group.name} runner-up not qualified`).toBe('qualified');
+            expect(byPos(4).status, `group ${group.name} last not eliminated`).toBe('eliminated');
           }
         }
       }
