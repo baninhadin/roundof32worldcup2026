@@ -1,4 +1,5 @@
 import { recordFor } from './standings';
+import { rankGroup } from './tiebreak';
 import {
   enumerateWorlds,
   playedMatches,
@@ -43,6 +44,13 @@ export function classifyGroup(group: Group): TeamVerdict[] {
   const played = playedMatches(group.matches);
   const unplayed = unplayedMatches(group.matches);
   const worlds = enumerateWorlds(unplayed);
+  const groupFinished = unplayed.length === 0;
+
+  // When the group is over, goal difference and FIFA ranking are real, so the final
+  // positions are exact: the top two qualify, full stop. Rank once and use it for
+  // status, so a 2nd-place team decided on GD/ranking isn't left as "contention".
+  const finalRank = groupFinished ? rankGroup(teamIds, group.matches).ordered : null;
+  const finishedPos = (id: TeamId) => (finalRank ? finalRank.indexOf(id) : -1);
 
   return group.teams.map((team) => {
     const ownIdx = unplayed
@@ -63,8 +71,11 @@ export function classifyGroup(group: Group): TeamVerdict[] {
     });
 
     // Elimination is decided at the tournament level (it needs cross-group info),
-    // so here a team is only "qualified" (top 2 in every world) or "contention".
-    const status: Status = evals.every((e) => e.status === 'in') ? 'qualified' : 'contention';
+    // so here a team is only "qualified" (top 2) or "contention". For a finished
+    // group, "top 2" is the exact final position; otherwise it's "top 2 in every world".
+    const pos = finishedPos(team.id);
+    const status: Status =
+      (groupFinished ? pos < 2 : evals.every((e) => e.status === 'in')) ? 'qualified' : 'contention';
 
     const topTwoWorldFraction =
       evals.filter((e) => e.status === 'in' || e.status === 'gd').length / evals.length;
