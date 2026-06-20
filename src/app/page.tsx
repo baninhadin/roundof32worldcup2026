@@ -724,7 +724,8 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
         </div>
         {status === 'sent' ? (
           <p className="suggest-thanks">Thanks, your message is on its way. Much appreciated.</p>
-        ) : (
+        ) : null}
+        {status !== 'sent' && (
           <form onSubmit={submit}>
             <p className="suggest-lead">
               This page has plenty of flaws, so feel free to suggest anything that would make it better,
@@ -751,6 +752,10 @@ function SuggestModal({ onClose }: { onClose: () => void }) {
             </div>
           </form>
         )}
+        <p className="suggest-direct">
+          Prefer email? Write to{' '}
+          <a href="mailto:baninhadin@gmail.com">baninhadin@gmail.com</a>
+        </p>
       </div>
     </div>
   );
