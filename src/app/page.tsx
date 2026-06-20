@@ -18,20 +18,25 @@ interface NextMatch {
 }
 
 interface MatchLine {
+  key: string;
   opp: string;
   flag: string | null;
   home: boolean;
+  editable: boolean;
+  /** Viewing team's goals / opponent's goals (null if not played or set). */
+  gf: number | null;
+  ga: number | null;
   result: 'W' | 'D' | 'L' | null;
   scoreText: string | null;
   date?: string;
 }
 
-interface Selection {
-  verdict: TeamVerdict;
-  row: StandingsRow;
-  upcoming: NextMatch[];
-  matches: MatchLine[];
-}
+type Overrides = Record<string, [number, number]>;
+
+const matchKey = (groupName: string, home: string, away: string) => `${groupName}|${home}|${away}`;
+
+// Web3Forms access key (safe to expose: it routes to the owner's inbox, not a secret).
+const WEB3FORMS_KEY = 'f201a30d-ec98-425c-9328-87624d91cb54';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -51,7 +56,7 @@ function upcomingFor(group: Group, teamId: TeamId): NextMatch[] {
     });
 }
 
-function matchesFor(group: Group, teamId: TeamId): MatchLine[] {
+function matchesFor(group: Group, teamId: TeamId, editableKeys: Set<string>): MatchLine[] {
   return group.matches
     .filter((m) => m.home === teamId || m.away === teamId)
     .map((m) => {
@@ -59,21 +64,36 @@ function matchesFor(group: Group, teamId: TeamId): MatchLine[] {
       const oppId = home ? m.away : m.home;
       const opp = group.teams.find((t) => t.id === oppId)!.name;
       const flag = flagClass(opp);
-      if (m.homeGoals !== null && m.awayGoals !== null) {
-        const gf = home ? m.homeGoals : m.awayGoals;
-        const ga = home ? m.awayGoals : m.homeGoals;
-        const result = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
-        return { opp, flag, home, result: result as 'W' | 'D' | 'L', scoreText: `${gf}-${ga}`, date: m.date };
-      }
-      return { opp, flag, home, result: null, scoreText: null, date: m.date };
+      const key = matchKey(group.name, m.home, m.away);
+      const editable = editableKeys.has(key);
+      const played = m.homeGoals !== null && m.awayGoals !== null;
+      const gf = played ? ((home ? m.homeGoals : m.awayGoals) as number) : null;
+      const ga = played ? ((home ? m.awayGoals : m.homeGoals) as number) : null;
+      const result = played ? (gf! > ga! ? 'W' : gf! < ga! ? 'L' : 'D') : null;
+      return {
+        key,
+        opp,
+        flag,
+        home,
+        editable,
+        gf,
+        ga,
+        result: result as 'W' | 'D' | 'L' | null,
+        scoreText: played ? `${gf}-${ga}` : null,
+        date: m.date,
+      };
     });
 }
 
 export default function Page() {
   const [data, setData] = useState<LoadResult>(() => bundledGroups());
   const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<Selection | null>(null);
+  const [selId, setSelId] = useState<TeamId | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [sim, setSim] = useState(false);
+  const [overrides, setOverrides] = useState<Overrides>({});
 
   useEffect(() => {
     let alive = true;
@@ -91,33 +111,66 @@ export default function Page() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setSel(null);
+        setSelId(null);
         setRulesOpen(false);
+        setHowOpen(false);
+        setSuggestOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const tournament = useMemo(() => classifyTournament(data.groups), [data]);
+  // Matches that can be edited in simulate mode: the ones not yet played for real.
+  const editableKeys = useMemo(() => {
+    const s = new Set<string>();
+    for (const g of data.groups)
+      for (const m of g.matches)
+        if (m.homeGoals === null) s.add(matchKey(g.name, m.home, m.away));
+    return s;
+  }, [data]);
+
+  // Apply simulate overrides on top of the real data.
+  const groups = useMemo(() => {
+    if (Object.keys(overrides).length === 0) return data.groups;
+    return data.groups.map((g) => ({
+      ...g,
+      matches: g.matches.map((m) => {
+        const ov = overrides[matchKey(g.name, m.home, m.away)];
+        return ov ? { ...m, homeGoals: ov[0], awayGoals: ov[1] } : m;
+      }),
+    }));
+  }, [data, overrides]);
+
+  const tournament = useMemo(() => classifyTournament(groups), [groups]);
   const verdictByTeam = useMemo(() => {
     const m = new Map<string, TeamVerdict>();
     for (const t of tournament) for (const v of t.verdicts) m.set(v.teamId, v);
     return m;
   }, [tournament]);
-  const upcomingByTeam = useMemo(() => {
-    const m = new Map<string, NextMatch[]>();
-    for (const g of data.groups) for (const t of g.teams) m.set(t.id, upcomingFor(g, t.id));
+  const groupByTeam = useMemo(() => {
+    const m = new Map<TeamId, Group>();
+    for (const g of groups) for (const t of g.teams) m.set(t.id, g);
     return m;
-  }, [data]);
+  }, [groups]);
+
+  const setScore = (key: string, homeGoals: number, awayGoals: number) =>
+    setOverrides((o) => ({ ...o, [key]: [homeGoals, awayGoals] }));
+  const clearScore = (key: string) =>
+    setOverrides((o) => {
+      const next = { ...o };
+      delete next[key];
+      return next;
+    });
+  const resetSim = () => setOverrides({});
 
   useEffect(() => {
-    const open = sel !== null || rulesOpen;
+    const open = selId !== null || rulesOpen || howOpen || suggestOpen;
     document.body.style.overflow = open ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [sel, rulesOpen]);
+  }, [selId, rulesOpen, howOpen, suggestOpen]);
 
   return (
     <div className="wrap">
@@ -138,13 +191,37 @@ export default function Page() {
                 ? 'Live results'
                 : 'Bundled snapshot'}
           </span>
-          <button className="pill btn" onClick={() => setRulesOpen(true)}>
-            ⓘ Tiebreaker rules and sources
+          <button className="pill btn" onClick={() => setHowOpen(true)}>
+            How it works
           </button>
-          <span className="pill">Top 2 + 8 best thirds advance</span>
+          <button className="pill btn" onClick={() => setRulesOpen(true)}>
+            Tiebreaker rules
+          </button>
+          <button
+            className={`pill btn ${sim ? 'on' : ''}`}
+            onClick={() => setSim((s) => !s)}
+            aria-pressed={sim}
+          >
+            ⚙ Simulate {sim ? 'on' : 'off'}
+          </button>
+          <button className="pill btn" onClick={() => setSuggestOpen(true)}>
+            Suggest
+          </button>
           <ThemeToggle />
         </div>
       </header>
+
+      {sim && (
+        <div className="sim-banner">
+          <span>
+            <b>Simulate mode.</b> Open a team and set scores on its upcoming matches to see how the
+            table and verdicts change. Also handy for entering a live score yourself.
+          </span>
+          <button className="sim-reset" onClick={resetSim} disabled={Object.keys(overrides).length === 0}>
+            Reset {Object.keys(overrides).length > 0 ? `(${Object.keys(overrides).length})` : ''}
+          </button>
+        </div>
+      )}
 
       <div className="legend">
         <span className="sw">
@@ -191,14 +268,7 @@ export default function Page() {
                       <tr
                         key={r.teamId}
                         className={`${v.status} ${r.position === 2 ? 'cut-line' : ''}`}
-                        onClick={() =>
-                          setSel({
-                            verdict: v,
-                            row: r,
-                            upcoming: upcomingByTeam.get(r.teamId) ?? [],
-                            matches: matchesFor(group, r.teamId),
-                          })
-                        }
+                        onClick={() => setSelId(r.teamId)}
                       >
                         <td className="pos">{r.position}</td>
                         <td className="team-col">
@@ -230,10 +300,11 @@ export default function Page() {
 
       <footer>
         <p>
-          A calculator, not a simulator. It runs every remaining result combination and returns the
-          conclusion per team. &quot;Goal difference decides&quot; cases are real, they depend on margins
-          not yet played. Tiebreakers follow the 2026 rules (head to head ahead of goal difference). The
-          dashed line marks the top two cutoff.
+          A calculator at heart. It runs every remaining result combination and returns the conclusion
+          per team, and Simulate mode lets you set your own results to see what changes. &quot;Goal
+          difference decides&quot; cases are real, they depend on margins not yet played. Tiebreakers
+          follow the 2026 rules (head to head ahead of goal difference). The dashed line marks the top
+          two cutoff.
         </p>
         <p>
           Unofficial and not affiliated with FIFA. Built for fun, not betting. Results from{' '}
@@ -244,15 +315,45 @@ export default function Page() {
         </p>
       </footer>
 
-      {sel && <TeamModal sel={sel} onClose={() => setSel(null)} />}
+      {selId &&
+        (() => {
+          const v = verdictByTeam.get(selId);
+          const g = groupByTeam.get(selId);
+          if (!v || !g) return null;
+          const row = standingsView(g).find((x) => x.teamId === selId)!;
+          return (
+            <TeamModal
+              v={v}
+              r={row}
+              upcoming={upcomingFor(g, selId)}
+              matches={matchesFor(g, selId, editableKeys)}
+              sim={sim}
+              onSetScore={setScore}
+              onClearScore={clearScore}
+              onClose={() => setSelId(null)}
+            />
+          );
+        })()}
       {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
+      {howOpen && <HowModal onClose={() => setHowOpen(false)} />}
+      {suggestOpen && <SuggestModal onClose={() => setSuggestOpen(false)} />}
     </div>
   );
 }
 
-function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
-  const { verdict: v, row: r } = sel;
-  const [showMatches, setShowMatches] = useState(false);
+interface TeamModalProps {
+  v: TeamVerdict;
+  r: StandingsRow;
+  upcoming: NextMatch[];
+  matches: MatchLine[];
+  sim: boolean;
+  onSetScore: (key: string, home: number, away: number) => void;
+  onClearScore: (key: string) => void;
+  onClose: () => void;
+}
+
+function TeamModal({ v, r, upcoming, matches, sim, onSetScore, onClearScore, onClose }: TeamModalProps) {
+  const [showMatches, setShowMatches] = useState(sim);
   const flag = flagClass(v.teamName);
   const statusLabel =
     v.status === 'qualified' ? 'Qualified' : v.status === 'eliminated' ? 'Eliminated' : 'In contention';
@@ -265,7 +366,7 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
           <div>
             <h3>{v.teamName}</h3>
             <div className="grp">Group {v.groupName}, currently {ordinalWord(r.position)}</div>
-            {sel.upcoming.map((u, i) => (
+            {upcoming.map((u, i) => (
               <div className="grp next" key={i}>
                 {i === 0 ? 'Next up' : 'then'} {u.opp}
                 {u.date ? `, ${fmtDate(u.date)}` : ''}
@@ -308,16 +409,49 @@ function TeamModal({ sel, onClose }: { sel: Selection; onClose: () => void }) {
 
         {showMatches && (
           <div className="matches">
-            {sel.matches.map((mt, i) => (
-              <div className="match" key={i}>
-                <span className={`res ${mt.result ?? 'tbd'}`}>{mt.result ?? '–'}</span>
-                <span className="mteam">
-                  {mt.flag && <span className={`flag ${mt.flag}`} />}
-                  <span className="mside">{mt.home ? 'vs' : 'at'}</span> {mt.opp}
-                </span>
-                <span className="mscore">{mt.scoreText ?? (mt.date ? fmtDate(mt.date) : 'TBD')}</span>
-              </div>
-            ))}
+            {matches.map((mt) => {
+              const clamp = (n: number) => Math.max(0, Math.min(20, n || 0));
+              const setGoals = (gf: number, ga: number) =>
+                onSetScore(mt.key, mt.home ? gf : ga, mt.home ? ga : gf);
+              const editing = sim && mt.editable;
+              return (
+                <div className="match" key={mt.key}>
+                  <span className={`res ${mt.result ?? 'tbd'}`}>{mt.result ?? '–'}</span>
+                  <span className="mteam">
+                    {mt.flag && <span className={`flag ${mt.flag}`} />}
+                    <span className="mside">{mt.home ? 'vs' : 'at'}</span> {mt.opp}
+                  </span>
+                  {editing ? (
+                    <span className="medit">
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={mt.gf ?? ''}
+                        placeholder="0"
+                        onChange={(e) => setGoals(clamp(+e.target.value), mt.ga ?? 0)}
+                      />
+                      <span className="dash">-</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={mt.ga ?? ''}
+                        placeholder="0"
+                        onChange={(e) => setGoals(mt.gf ?? 0, clamp(+e.target.value))}
+                      />
+                      {mt.gf !== null && (
+                        <button className="mclear" onClick={() => onClearScore(mt.key)} aria-label="Clear">
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="mscore">{mt.scoreText ?? (mt.date ? fmtDate(mt.date) : 'TBD')}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -409,6 +543,108 @@ function RulesModal({ onClose }: { onClose: () => void }) {
             {s.label} ↗
           </a>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function HowModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal rules" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-top">
+          <h3>How it works</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+        <p className="how-lead">
+          It does the simulating for you. Instead of making you enter scores and read a table, it works
+          out what every team needs and tells you in one line.
+        </p>
+        <h4>Step by step</h4>
+        <ol>
+          <li>It takes the results so far plus the fixtures still to play.</li>
+          <li>It plays out every possible combination of the remaining results (win, draw, loss).</li>
+          <li>Points and head to head come straight from those, so &quot;qualified&quot; and &quot;eliminated&quot; are exact.</li>
+          <li>Goal difference is solved as a threshold (&quot;win by 2 or more&quot;), never guessed.</li>
+          <li>It ranks the twelve 3rd-placed teams to work out the 8 best thirds.</li>
+          <li>Tap any team for its verdict. Flip on Simulate to set your own results and watch it change.</li>
+        </ol>
+        <p className="how-foot">
+          The headline is always the deterministic answer. Nothing here is a prediction.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SuggestModal({ onClose }: { onClose: () => void }) {
+  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || status === 'sending') return;
+    setStatus('sending');
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_KEY,
+          subject: 'Suggestion — roundof32worldcup2026',
+          from_name: 'Site visitor',
+          message,
+          email: email || undefined,
+        }),
+      });
+      const json = await res.json();
+      setStatus(json.success ? 'sent' : 'error');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal suggest" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-top">
+          <h3>Suggest an improvement</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+        {status === 'sent' ? (
+          <p className="suggest-thanks">Thanks, your message is on its way. Much appreciated.</p>
+        ) : (
+          <form onSubmit={submit}>
+            <p className="suggest-lead">
+              This page has plenty of flaws, so feel free to suggest anything that would make it better,
+              what&apos;s confusing, broken, or missing.
+            </p>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Your suggestion…"
+              rows={5}
+              required
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email (optional, so I can reply)"
+            />
+            <div className="suggest-row">
+              <button type="submit" className="suggest-send" disabled={status === 'sending' || !message.trim()}>
+                {status === 'sending' ? 'Sending…' : 'Send'}
+              </button>
+              {status === 'error' && <span className="suggest-err">Something went wrong, try again.</span>}
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

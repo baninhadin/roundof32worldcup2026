@@ -332,6 +332,58 @@ table.mini tbody tr:hover { background: transparent; }
 .rules .src:hover { text-decoration: underline; }
 
 /* ---------- misc ---------- */
+.pill.btn.on { background: var(--green-tint); border-color: var(--green-deep); color: var(--green); }
+
+/* simulate banner */
+.sim-banner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 4px 0 18px; padding: 11px 15px; border-radius: 12px;
+  background: rgba(244, 183, 64, 0.08); border: 1px solid rgba(244, 183, 64, 0.3);
+  font-size: 0.86rem; color: var(--text);
+}
+.sim-banner b { color: var(--amber); }
+.sim-reset {
+  margin-left: auto; cursor: pointer; font: inherit; font-size: 0.82rem;
+  padding: 5px 12px; border-radius: 8px; background: var(--panel); color: var(--text);
+  border: 1px solid var(--border-2);
+}
+.sim-reset:disabled { opacity: 0.4; cursor: default; }
+.sim-reset:not(:disabled):hover { border-color: var(--amber); }
+
+/* simulate score inputs in the match list */
+.medit { display: flex; align-items: center; gap: 5px; }
+.medit input {
+  width: 34px; height: 28px; text-align: center; font: inherit; font-size: 0.92rem;
+  border-radius: 7px; border: 1px solid var(--border-2); background: var(--bg-2); color: var(--text);
+  -moz-appearance: textfield;
+}
+.medit input::-webkit-outer-spin-button, .medit input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.medit input:focus { outline: none; border-color: var(--green); }
+.medit .dash { color: var(--faint); }
+.mclear {
+  margin-left: 2px; width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--border-2); color: var(--muted); line-height: 1;
+}
+.mclear:hover { color: var(--red); border-color: var(--red); }
+
+/* how-it-works + suggest modals */
+.how-lead, .suggest-lead { color: var(--muted); font-size: 0.92rem; margin: 6px 0 14px; line-height: 1.5; }
+.how-foot { color: var(--faint); font-size: 0.85rem; margin-top: 14px; font-style: italic; }
+.modal.suggest form { display: flex; flex-direction: column; gap: 10px; }
+.modal.suggest textarea, .modal.suggest input {
+  font: inherit; width: 100%; border-radius: 10px; padding: 10px 12px;
+  background: var(--panel-2); border: 1px solid var(--border-2); color: var(--text); resize: vertical;
+}
+.modal.suggest textarea:focus, .modal.suggest input:focus { outline: none; border-color: var(--green); }
+.suggest-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+.suggest-send {
+  cursor: pointer; font: inherit; font-weight: 650; padding: 9px 20px; border-radius: 10px;
+  background: var(--green); color: #04130d; border: 0;
+}
+.suggest-send:disabled { opacity: 0.5; cursor: default; }
+.suggest-err { color: var(--red); font-size: 0.85rem; }
+.suggest-thanks { color: var(--green); font-size: 0.98rem; padding: 8px 0 6px; }
+
 .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin: 16px 0 24px; align-items: center; }
 .legend .sw { display: inline-flex; align-items: center; gap: 7px; }
 .legend .chip { width: 12px; height: 12px; border-radius: 3px; }

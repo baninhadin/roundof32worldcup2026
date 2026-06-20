@@ -129,6 +129,21 @@ function describe(
     };
   }
 
+  // Team has played all its games but the group has not finished (other matches left).
+  if (ownIdx.length === 0) {
+    return {
+      headline: 'Games done, waiting on the group',
+      conditions: [
+        {
+          outcome: 'Done',
+          lines: ['Played all its games. What happens now depends on the other matches in the group.'],
+          guarantees: false,
+        },
+      ],
+      disclaims: false,
+    };
+  }
+
   // Endgame: exactly one own match left. Full breakdown by W/D/L.
   if (ownIdx.length === 1) {
     const ownMatch = unplayed[ownIdx[0]];

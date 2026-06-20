@@ -47,6 +47,24 @@ describe('Group A golden oracle (corrected for 2026 rules)', () => {
     expect(v.headline.toLowerCase()).toMatch(/need south korea to lose/);
   });
 
+  it('handles a team that finished its games while the group has matches left', () => {
+    // A played all three; B v C still to play. A must not crash (regression for simulate).
+    const group = {
+      name: 'X',
+      teams: ['A', 'B', 'C', 'D'].map((n) => ({ id: n, name: n })),
+      matches: [
+        { home: 'A', away: 'B', homeGoals: 0, awayGoals: 1 }, // A lost
+        { home: 'A', away: 'C', homeGoals: 0, awayGoals: 1 }, // A lost
+        { home: 'A', away: 'D', homeGoals: 1, awayGoals: 0 }, // A beat D (A finished, 3 pts)
+        { home: 'B', away: 'D', homeGoals: 1, awayGoals: 0 },
+        { home: 'C', away: 'D', homeGoals: 1, awayGoals: 0 },
+        { home: 'B', away: 'C', homeGoals: null, awayGoals: null }, // group not finished
+      ],
+    };
+    const a = classifyGroup(group).find((v) => v.teamId === 'A')!;
+    expect(a.headline.toLowerCase()).toContain('waiting on the group');
+  });
+
   it('no em-dashes in any generated copy', () => {
     for (const v of verdicts) {
       expect(v.headline).not.toContain('—');
