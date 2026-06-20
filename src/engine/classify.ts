@@ -374,7 +374,7 @@ function earlyRound(topTwoFraction: number): { headline: string; conditions: Con
       {
         outcome: 'Too early',
         lines: ['Need more games for a clear verdict.'],
-        note: `Finishes top two in ${pct}% of the remaining scenarios, if every result were equally likely.`,
+        note: `About ${pct}% to finish top two`,
         guarantees: false,
       },
     ],
