@@ -1,7 +1,6 @@
-/* Miles Morales palette: near-black base, bright red accent, white text.
-   Semantic mapping: --green = the red "through/accent" color (qualified, points,
-   positive); --amber = neutral light (in contention); --red = muted dark red
-   (eliminated, negative); --blue = neutral info (links, next match). */
+/* Miles Morales aesthetic: near-black base, red brand accent (--brand), white text.
+   Status colors stay intuitive: --green = qualified, --amber = in contention,
+   --red = eliminated. --brand (red) is for chrome only (logo, buttons, header). */
 :root {
   --bg: #0a0a0c;
   --bg-2: #0e0e11;
@@ -13,11 +12,14 @@
   --text: #f6f6f8;
   --muted: #9a9aa6;
   --faint: #61616c;
-  --green: #ff3344;
-  --green-deep: #5c0f18;
-  --green-tint: rgba(255, 51, 68, 0.10);
-  --amber: #cdd0d8;
-  --red: #9b3b45;
+  --brand: #ff3344;
+  --brand-deep: #7a1018;
+  --brand-tint: rgba(255, 51, 68, 0.12);
+  --green: #2fe08f;
+  --green-deep: #0c6b4d;
+  --green-tint: rgba(47, 224, 143, 0.10);
+  --amber: #f4b740;
+  --red: #ff6b6b;
   --blue: #aeb4c0;
   --shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
 }
@@ -33,11 +35,14 @@
   --text: #16151a;
   --muted: #5d555f;
   --faint: #968d97;
-  --green: #e01029;
-  --green-deep: #f4b7bd;
-  --green-tint: rgba(224, 16, 41, 0.08);
-  --amber: #6c6c78;
-  --red: #b03a44;
+  --brand: #e01029;
+  --brand-deep: #f0a6ad;
+  --brand-tint: rgba(224, 16, 41, 0.10);
+  --green: #128a5f;
+  --green-deep: #9bd9c0;
+  --green-tint: rgba(18, 138, 95, 0.1);
+  --amber: #b9810f;
+  --red: #d24b4b;
   --blue: #5a5560;
   --shadow: 0 10px 28px rgba(40, 10, 15, 0.1);
 }
@@ -113,7 +118,7 @@ header { margin-bottom: 22px; }
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
-.pill.btn:hover { background: var(--panel-2); border-color: var(--green-deep); }
+.pill.btn:hover { background: var(--panel-2); border-color: var(--brand); }
 .pill.btn:active { transform: translateY(1px); }
 .pill.btn.icon { padding: 6px 11px; font-size: 0.95rem; line-height: 1; }
 
@@ -122,12 +127,12 @@ html.theming, html.theming *, html.theming *::before {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease,
     box-shadow 0.25s ease !important;
 }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(255,51,68,0.6); animation: pulse 2.2s infinite; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(47,224,143,0.6); animation: pulse 2.2s infinite; }
 .live-dot.bundled { background: var(--amber); animation: none; }
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255,51,68,0.5); }
-  70% { box-shadow: 0 0 0 7px rgba(255,51,68,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,51,68,0); }
+  0% { box-shadow: 0 0 0 0 rgba(47,224,143,0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(47,224,143,0); }
+  100% { box-shadow: 0 0 0 0 rgba(47,224,143,0); }
 }
 
 /* ---------- grid + cards ---------- */
@@ -163,7 +168,7 @@ html.theming, html.theming *, html.theming *::before {
   width: 28px; height: 28px; border-radius: 8px;
   display: grid; place-items: center;
   font-weight: 800; font-size: 0.9rem;
-  background: var(--green-tint); color: var(--green); border: 1px solid var(--green-deep);
+  background: var(--brand-tint); color: var(--brand); border: 1px solid var(--brand-deep);
 }
 .card-head .grp-label { color: var(--muted); font-size: 0.82rem; letter-spacing: 0.06em; }
 
@@ -259,7 +264,7 @@ table.mini td {
   text-align: center; padding: 9px 4px; font-variant-numeric: tabular-nums;
   font-size: 0.95rem; color: var(--text);
 }
-table.mini td.pts { font-weight: 800; color: var(--green); }
+table.mini td.pts { font-weight: 800; color: var(--text); }
 table.mini tbody tr:hover { background: transparent; }
 
 .stats-block {
@@ -334,7 +339,7 @@ table.mini tbody tr:hover { background: transparent; }
 .disclaim { margin-top: 12px; font-size: 0.8rem; color: var(--faint); font-style: italic; }
 
 /* ---------- rules modal ---------- */
-.rules h4 { margin: 18px 0 8px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--green); }
+.rules h4 { margin: 18px 0 8px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); }
 .rules ol, .rules ul { margin: 0; padding-left: 20px; }
 .rules li { padding: 3px 0; font-size: 0.9rem; color: var(--text); }
 .rules li .new { color: var(--amber); font-weight: 600; }
@@ -343,7 +348,7 @@ table.mini tbody tr:hover { background: transparent; }
 .rules .src:hover { text-decoration: underline; }
 
 /* ---------- misc ---------- */
-.pill.btn.on { background: var(--green-tint); border-color: var(--green-deep); color: var(--green); }
+.pill.btn.on { background: var(--brand-tint); border-color: var(--brand); color: var(--brand); }
 
 /* simulate banner */
 .sim-banner {
@@ -369,7 +374,7 @@ table.mini tbody tr:hover { background: transparent; }
   -moz-appearance: textfield;
 }
 .medit input::-webkit-outer-spin-button, .medit input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.medit input:focus { outline: none; border-color: var(--green); }
+.medit input:focus { outline: none; border-color: var(--brand); }
 .medit .dash { color: var(--faint); }
 .mclear {
   margin-left: 2px; width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
@@ -385,11 +390,11 @@ table.mini tbody tr:hover { background: transparent; }
   font: inherit; width: 100%; border-radius: 10px; padding: 10px 12px;
   background: var(--panel-2); border: 1px solid var(--border-2); color: var(--text); resize: vertical;
 }
-.modal.suggest textarea:focus, .modal.suggest input:focus { outline: none; border-color: var(--green); }
+.modal.suggest textarea:focus, .modal.suggest input:focus { outline: none; border-color: var(--brand); }
 .suggest-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
 .suggest-send {
   cursor: pointer; font: inherit; font-weight: 650; padding: 9px 20px; border-radius: 10px;
-  background: var(--green); color: #fff; border: 0;
+  background: var(--brand); color: #fff; border: 0;
 }
 .suggest-send:disabled { opacity: 0.5; cursor: default; }
 .suggest-err { color: var(--red); font-size: 0.85rem; }
